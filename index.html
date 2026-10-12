@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scene to Story</title>
+  <meta name="description" content="Record or upload a one-minute video and let Claude turn it into prose or poetry.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">✦</span>
+      <span>Scene to Story</span>
+    </div>
+    <div id="auth" class="auth">
+      <button id="signin" class="btn primary">Sign in with OpenRouter</button>
+      <div id="signedin" class="signedin" hidden>
+        <span class="dot" aria-hidden="true"></span>
+        <span>Signed in</span>
+        <button id="signout" class="btn link">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>One minute of life,<br><em>written as a story.</em></h1>
+      <p>Record or upload a video up to 60 seconds long. Claude watches it, reads any text on screen, describes the people, listens to what they say, and writes about the moment.</p>
+    </section>
+
+    <section class="card" id="capture">
+      <div class="tabs" role="tablist">
+        <button role="tab" class="tab active" data-tab="record" aria-selected="true">Record</button>
+        <button role="tab" class="tab" data-tab="upload" aria-selected="false">Upload</button>
+      </div>
+
+      <div class="stage">
+        <video id="preview" playsinline muted></video>
+        <div id="placeholder" class="placeholder">
+          <p>No video yet</p>
+        </div>
+        <div id="rec-timer" class="rec-timer" hidden><span class="rec-dot"></span><span id="rec-time">0:00</span> / 1:00</div>
+      </div>
+
+      <div class="panel" data-panel="record">
+        <button id="cam-start" class="btn">Turn on camera</button>
+        <button id="cam-flip" class="btn" hidden>Flip camera</button>
+        <button id="rec-btn" class="btn rec" hidden>● Record</button>
+        <button id="rec-stop" class="btn" hidden>■ Stop</button>
+      </div>
+
+      <div class="panel" data-panel="upload" hidden>
+        <label class="drop" id="drop">
+          <input type="file" id="file" accept="video/*" hidden>
+          <span><strong>Choose a video</strong> or drop it here</span>
+          <small>Only the first 60 seconds are used</small>
+        </label>
+      </div>
+    </section>
+
+    <section class="card" id="options">
+      <div class="grid">
+        <label class="field">
+          <span>Style</span>
+          <select id="style">
+            <option value="prose">Literary prose with dialogue</option>
+            <option value="poem">Poetic scene</option>
+            <option value="screenplay">Screenplay</option>
+            <option value="noir">Noir short story</option>
+            <option value="haiku">Haiku sequence</option>
+            <option value="fairytale">Fairy tale</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Model</span>
+          <select id="model">
+            <option value="anthropic/claude-opus-5.5">Claude Opus 5.5 (best)</option>
+            <option value="anthropic/claude-sonnet-5.5">Claude Sonnet 5.5 (faster)</option>
+            <option value="anthropic/claude-haiku-5.5">Claude Haiku 5.5 (cheapest)</option>
+            <option value="anthropic/claude-fable-5.1">Claude Fable 5.1 (most capable)</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Frames</span>
+          <select id="fps">
+            <option value="1">1 per second</option>
+            <option value="2">2 per second (fast action)</option>
+            <option value="0.5">1 every 2 seconds (cheaper)</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Language</span>
+          <input id="lang" type="text" placeholder="Same as video" maxlength="40">
+        </label>
+      </div>
+      <label class="field">
+        <span>Extra direction <small>(optional)</small></span>
+        <input id="direction" type="text" placeholder="e.g. tell it from the dog's point of view" maxlength="300">
+      </label>
+      <button id="go" class="btn primary big" disabled>Write the story</button>
+      <p id="hint" class="hint">Sign in and add a video to begin.</p>
+    </section>
+
+    <section class="card" id="progress" hidden>
+      <ol class="steps">
+        <li data-step="frames"><span class="ico"></span>Capturing frames</li>
+        <li data-step="audio"><span class="ico"></span>Listening to the audio</li>
+        <li data-step="analyze"><span class="ico"></span>Watching the scene</li>
+        <li data-step="write"><span class="ico"></span>Writing</li>
+      </ol>
+      <div id="progress-detail" class="detail"></div>
+      <div id="error" class="error" hidden></div>
+    </section>
+
+    <section id="results" hidden>
+      <article class="card story">
+        <div class="story-head">
+          <h2 id="story-title">The story</h2>
+          <div class="actions">
+            <button id="copy" class="btn small">Copy</button>
+            <button id="download" class="btn small">Download</button>
+            <button id="rewrite" class="btn small">Rewrite in chosen style</button>
+          </div>
+        </div>
+        <div id="story" class="story-body"></div>
+      </article>
+
+      <div class="card analysis">
+        <h2>What Claude saw</h2>
+        <div class="analysis-grid">
+          <div>
+            <h3>Setting</h3>
+            <p id="a-setting"></p>
+            <h3>Text on screen</h3>
+            <ul id="a-text" class="chips"></ul>
+          </div>
+          <div>
+            <h3>Characters</h3>
+            <div id="a-chars" class="chars"></div>
+          </div>
+        </div>
+        <h3>Timeline</h3>
+        <ol id="a-timeline" class="timeline"></ol>
+        <h3>Dialogue</h3>
+        <div id="a-dialogue" class="dialogue"></div>
+        <div id="filmstrip" class="filmstrip"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    Runs entirely in your browser. Video and audio stay on your device; only still frames and the transcript are sent to Claude via OpenRouter, billed to your OpenRouter account.
+  </footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
