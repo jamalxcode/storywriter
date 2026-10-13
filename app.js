@@ -1197,6 +1197,16 @@ $('#download').addEventListener('click', () => {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 });
 
+// ---------- privacy pop-up ----------
+const privacyDialog = $('#privacy');
+document.querySelectorAll('[data-open-privacy]').forEach((el) => el.addEventListener('click', (e) => {
+  e.preventDefault();
+  privacyDialog.showModal();
+}));
+document.querySelectorAll('[data-close-privacy]').forEach((el) => el.addEventListener('click', () => privacyDialog.close()));
+privacyDialog.addEventListener('click', (e) => { if (e.target === privacyDialog) privacyDialog.close(); }); // click outside the box
+if (location.hash === '#privacy') privacyDialog.showModal();
+
 // ---------- start ----------
 state.key = store.get('or_key');
 await finishSignIn();

@@ -25,7 +25,7 @@
   <main>
     <section class="hero">
       <h1>One minute of life,<br><em>written as a story.</em></h1>
-      <p>Give it a video up to one minute long, from your camera, a file or YouTube. The AI (Claude) watches it, reads any text on screen, listens to what people say, and writes the moment as prose, a poem or a screenplay. Your video never leaves your device.</p>
+      <p>Give it a video up to one minute long, from your camera, a file or YouTube. The AI (Claude) watches it, reads any text on screen, listens to what people say, and writes the moment as prose, a poem or a screenplay. Your video never leaves your device. <button type="button" class="privacy-chip" data-open-privacy>🔒 Privacy</button></p>
     </section>
 
     <ol class="steps-list">
@@ -175,7 +175,7 @@
           <button id="go" class="btn primary big" disabled>Write the story</button>
           <p id="hint" class="hint">Sign in and add a video to begin.</p>
           <p id="estimate" class="estimate" hidden></p>
-          <p class="privacy-note">🔒 Your video and sound stay on this device. Only still frames and a text transcript are sent to the AI. <a href="#privacy">Details</a></p>
+          <p class="privacy-note">🔒 Your video and sound stay on this device. Only still frames and a text transcript are sent to the AI. <a href="#privacy" data-open-privacy>Details</a></p>
 
           <div id="progress" class="progress" hidden>
             <ol class="steps">
@@ -228,8 +228,12 @@
       </details>
     </section>
 
-    <section class="card privacy" id="privacy">
-      <h2>Your privacy</h2>
+  </main>
+
+  <dialog class="privacy" id="privacy" aria-labelledby="privacy-title">
+    <div class="privacy-inner">
+      <button class="close" type="button" aria-label="Close" data-close-privacy>×</button>
+      <h2 id="privacy-title">🔒 Your privacy</h2>
       <p class="lead">This site has no server and no database. It never stores your video, your stories or your account anywhere online. Nothing is sent back to this website.</p>
       <ul class="privacy-list">
         <li><span class="where local">Stays on your device</span><div><strong>Your video and its sound.</strong> They're processed in your browser and never uploaded. The speech is turned into text on your device, too.</div></li>
@@ -238,11 +242,12 @@
         <li><span class="where local">Saved in this browser</span><div><strong>Your OpenRouter sign-in and your settings.</strong> Kept so you stay signed in. "Sign out" removes them.</div></li>
       </ul>
       <p class="small">The page also loads its fonts from Google Fonts, its speech model from Hugging Face and jsDelivr, and the YouTube player when you use a YouTube link. Like any website, these services see your IP address, but they receive none of your content. AI use is billed to your own OpenRouter account.</p>
-    </section>
-  </main>
+      <button class="btn primary" type="button" data-close-privacy>Got it</button>
+    </div>
+  </dialog>
 
   <footer class="foot">
-    Your video never leaves your device. <a href="#privacy">How your data is handled</a>
+    Your video never leaves your device. <a href="#privacy" data-open-privacy>How your data is handled</a>
   </footer>
 
   <script type="module" src="app.js"></script>

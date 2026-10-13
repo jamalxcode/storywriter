@@ -34,7 +34,7 @@ Video (camera, upload, or a YouTube link + timestamp; up to 60 s)
 
 ## Privacy
 
-The page has a **Your privacy** section that tells visitors this in plain language.
+A **🔒 Privacy** button right after "Your video never leaves your device." opens a pop-up that tells visitors this in plain language (the step 4 "Details" link and the footer link open it too, as does `#privacy` in the address).
 
 | What | Where it goes |
 |---|---|
@@ -77,7 +77,7 @@ npx serve .
 
 | File | What it is |
 |---|---|
-| `index.html` | Page layout: the four numbered steps (sign in, choose a video, writing style, write), the results and the Your privacy section |
+| `index.html` | Page layout: the four numbered steps (sign in, choose a video, writing style, write), the results and the privacy pop-up |
 | `style.css` | Styling, with light and dark modes |
 | `app.js` | Recording, YouTube capture, frame capture, OpenRouter sign-in, AI calls, cost estimate, rendering |
 | `whisper-worker.js` | Speech-to-text in a background thread |
