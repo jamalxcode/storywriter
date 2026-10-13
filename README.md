@@ -1,36 +1,53 @@
+<img src="logo.svg" width="72" align="left" alt="">
+
 # Scene to Story
 
-**Live:** https://story.sala.company
+**Live: [story.sala.company](https://story.sala.company)** · part of [Sala Company](https://go.sala.company)
 
-Record or upload a video up to one minute long. The AI (currently Claude) watches it, reads any text on screen, describes the people, listens to what they say, and writes about the moment: literary prose with dialogue, a poem, a screenplay, a noir story, a haiku sequence or a fairy tale.
+<br clear="left">
 
-It is a static site for **GitHub Pages**. There is no server and nothing to pay for hosting.
+Record, upload or pick a YouTube clip up to one minute long. The AI (currently Claude) watches it, reads any text on screen, describes the people, listens to what they say, and writes about the moment as literary prose with dialogue, a poem, a screenplay, a noir story, a haiku sequence or a fairy tale.
+
+It's a static site on GitHub Pages: no server, no database, nothing to pay for hosting. Visitors sign in with their own OpenRouter account, which pays for the AI.
+
+[![Scene to Story: the start of the page](screenshot.jpg)](https://story.sala.company)
 
 ## How it works
 
 ```
-Video (camera, upload, or a YouTube link + timestamp; ≤ 60 s)
- ├─ Frames: 1 per second, captured in the browser with <canvas>
- ├─ Audio: transcribed in the browser by Whisper (Transformers.js, Web Worker)
- └─ AI (Claude), through OpenRouter, signed in with OAuth (PKCE)
-      1. Watching (Sonnet 5.5 by default): text on screen, characters,
-         timeline, who said what, returned in a fixed JSON format
+Video (camera, upload, or a YouTube link + timestamp; up to 60 s)
+ ├─ Frames: 1 per second (or 2, or 1 every 2 s), captured in the browser with <canvas>
+ ├─ Speech: transcribed in the browser by Whisper (Transformers.js, in a Web Worker)
+ └─ AI (Claude) through OpenRouter, signed in with OAuth (PKCE)
+      1. Watching (Sonnet 5.5 by default): text on screen, characters, timeline and
+         who said what, returned in a strict JSON format
       2. Writing (Opus 5.5 by default): the piece, streamed onto the page
 ```
 
-- **Two models:** a cheaper model watches the frames, which is most of the input; the best model writes. Both can be changed on the page.
-- **Reliability:** rate limits, server errors and dropped connections are retried automatically (up to 3 attempts). The analysis is requested with a strict JSON schema and asked for again once if it still comes back unreadable. A **Cancel** button stops any step.
-- **Cost:** the page shows an estimate before you start, using live prices from OpenRouter, and the actual cost reported by OpenRouter afterwards.
-- **Large files:** uploads over 150 MB aren't loaded into memory to read the sound. Their first minute is played silently and recorded instead, in real time.
+- **Sign-in:** "Sign in with OpenRouter" uses OAuth PKCE, so it needs no server or secret. Returning users go through OpenRouter's sign-in page, and new users get a separate "Create account" link. The key is kept in the visitor's browser until they sign out, and never in this repo.
+- **Two models:** a cheaper model watches the frames, which is most of the input, and the best model writes. Both can be changed on the page.
+- **YouTube:** paste a link (a `?t=1m30s` timestamp fills in the start time) and choose a length, which defaults to 60 seconds. A static page can't download from YouTube, so the clip plays in YouTube's own embedded player while the page records its own tab, cropped to the player. When the browser asks, share **this tab** with **"Also share tab audio"** ticked. It records in real time and needs desktop Chrome or Edge (Firefox records without sound). Videos whose owners block embedding can't be used. Only capture videos you have the right to use.
+- **Reliability:** rate limits, server errors and dropped connections are retried automatically (up to 3 attempts, honouring `Retry-After`), but never after part of a story has appeared. The analysis is asked for again once if it still comes back unreadable. A **Cancel** button stops any step.
+- **Cost:** an estimate before you start, from OpenRouter's live prices, and the actual cost OpenRouter reports afterwards.
+- **Large files:** for uploads over 150 MB, the sound isn't decoded in one go. The first minute is played silently and recorded instead, in real time.
+- **Speech model:** Whisper base (8-bit), about 80 MB, downloaded once from Hugging Face and then cached by the browser.
 
-- **Sign-in:** "Sign in with OpenRouter" uses OAuth PKCE, so it needs no server and no secret. Each visitor's usage is billed to **their own** OpenRouter account. No key is ever stored in this repo.
-- **YouTube:** paste a link (a `?t=1m30s` timestamp fills in the start time) and choose a length, which defaults to 60 seconds. A static page can't download YouTube videos, so the clip plays in YouTube's own embedded player while the page records its own tab, cropped to the player. When the browser asks, share **this tab** with **"Also share tab audio"** ticked. Recording happens in real time, and only desktop Chrome and Edge can do it (Firefox records without sound). Videos whose owners block embedding can't be used. Only capture videos you have the right to use.
-- **Privacy:** the video and audio never leave the device. Only the still frames and the transcript go to the AI. Stories and analysis exist only on the open page (users keep them with Copy or Download). The page has a "Your privacy" section that explains this to users.
-- **Speech model:** Whisper base (8-bit), about 75 MB, downloaded once from Hugging Face and then cached by the browser. It runs on WebAssembly in a background thread, so the page stays responsive.
+## Privacy
 
-## Cost per video (paid by the visitor through OpenRouter)
+The page has a **Your privacy** section that tells visitors this in plain language.
 
-Rough estimates for a 1-minute 16:9 video at 1 frame/s. The page shows its own estimate for each video, and the actual cost afterwards.
+| What | Where it goes |
+|---|---|
+| The video and its sound | Stays on the device. Speech is turned into text on the device, too. |
+| Still frames and the speech transcript | Sent to the AI (Claude, made by Anthropic) through OpenRouter, only when "Write the story" is pressed |
+| The story and the AI's notes | Shown on the page only, and gone on reload unless the visitor copies or downloads it |
+| OpenRouter sign-in and settings | Saved in the visitor's browser. "Sign out" removes them. |
+
+Nothing is sent back to this site. The page also loads fonts from Google Fonts, the speech model from Hugging Face and jsDelivr, and the YouTube player when a YouTube link is used.
+
+## Cost per story (paid by the visitor through OpenRouter)
+
+Rough figures for a one-minute 16:9 video at 1 frame per second. The page shows its own estimate for each video.
 
 | Watching → Writing | Approx. cost |
 |---|---|
@@ -40,17 +57,17 @@ Rough estimates for a 1-minute 16:9 video at 1 frame/s. The page shows its own e
 | Sonnet 5.5 → Fable 5.1 | ~$0.27 |
 | Haiku 5.5 → Haiku 5.5 | under $0.01 |
 
-## Deploy to GitHub Pages
+A rewrite in another style costs only the writing step.
 
-1. Create a new repository on GitHub and upload these files: `index.html`, `app.js`, `style.css`, `whisper-worker.js`, `README.md`.
-2. In the repository, go to **Settings → Pages → Build and deployment**, choose **Deploy from a branch**, then pick `main` and `/ (root)`.
-3. After a minute your site is live at `https://<your-username>.github.io/<repo-name>/`.
+## Hosting
 
-Nothing to configure: OpenRouter's PKCE sign-in accepts any HTTPS callback address, so it works as soon as the site is published.
+GitHub Pages serves the `main` branch at `story.sala.company` (see `CNAME`; DNS is a `CNAME` record for `story` pointing to `jamalxcode.github.io`), with HTTPS enforced. Every push to `main` goes live in about a minute. The old address, `jamalxcode.github.io/storywriter`, redirects here.
+
+OpenRouter's PKCE sign-in accepts any HTTPS callback address, so a move to another domain needs no OpenRouter settings. Visitors just sign in again on the new address.
 
 ## Run locally
 
-Camera access and ES modules need `http://localhost` or HTTPS, so opening the file directly won't work. Any static server will do:
+Camera access and ES modules need `http://localhost` or HTTPS, so opening `index.html` directly won't work. Any static server will do:
 
 ```bash
 npx serve .
@@ -58,16 +75,20 @@ npx serve .
 
 ## Files
 
-| File | Purpose |
+| File | What it is |
 |---|---|
-| `index.html` | Page layout |
+| `index.html` | Page layout, the What you need box and the Your privacy section |
 | `style.css` | Styling, with light and dark modes |
-| `app.js` | Recording, frame capture, OpenRouter sign-in, Claude calls, rendering |
+| `app.js` | Recording, YouTube capture, frame capture, OpenRouter sign-in, AI calls, cost estimate, rendering |
 | `whisper-worker.js` | Speech-to-text in a background thread |
+| `logo.svg` | The logo (a gold quill, inkpot and document), also used as the favicon |
+| `screenshot.jpg` | The screenshot in this README |
+| `CNAME` | The custom domain, `story.sala.company` |
 
 ## Limits
 
-- Only the first 60 seconds of an uploaded video are used.
-- Speaker attribution is inferred from the frames, so it is best with one or two people on screen.
+- Only the first 60 seconds of a video are used.
+- Speakers are matched from the frames, not by voice, so it works best with one or two people on screen.
 - Very fast action between frames can be missed. Choose "2 per second" for those clips.
-- The browser must be able to play the video format (MP4 and WebM work everywhere; some phone HEVC files only play in Safari).
+- The browser must be able to play the video format. MP4 and WebM work everywhere; some phone HEVC files play only in Safari.
+- Capturing from YouTube doesn't work on phones.
