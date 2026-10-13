@@ -89,8 +89,9 @@ function signOut() {
 
 function renderAuth() {
   $('#signedout').hidden = !!state.key;
-  $('#needs').hidden = !!state.key;
   $('#signedin').hidden = !state.key;
+  $('#step-signin').classList.toggle('done', !!state.key);
+  $('#step-signin h2').textContent = state.key ? 'Signed in to OpenRouter' : 'Sign in to OpenRouter';
   updateGo();
 }
 
@@ -525,10 +526,11 @@ function updateGo() {
   const ready = !!state.key && !!state.video && !state.busy;
   $('#go').disabled = !ready;
   $('#rewrite').disabled = !state.key || !state.analysis || state.busy;
-  $('#hint').textContent = !state.key
-    ? 'Sign in with OpenRouter to begin.'
-    : !state.video ? 'Record or upload a video to begin.'
-    : state.busy ? 'Working…' : 'Ready.';
+  $('#step-video').classList.toggle('done', !!state.video);
+  $('#hint').textContent = !state.key && !state.video ? 'First sign in (step 1) and choose a video (step 2).'
+    : !state.key ? 'First sign in to OpenRouter (step 1).'
+    : !state.video ? 'First choose a video (step 2).'
+    : state.busy ? 'Working…' : 'Ready when you are.';
 }
 
 // ---------- video helpers ----------

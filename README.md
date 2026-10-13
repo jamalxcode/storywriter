@@ -77,7 +77,7 @@ npx serve .
 
 | File | What it is |
 |---|---|
-| `index.html` | Page layout, the What you need box and the Your privacy section |
+| `index.html` | Page layout: the four numbered steps (sign in, choose a video, choose a style, write), the results and the Your privacy section |
 | `style.css` | Styling, with light and dark modes |
 | `app.js` | Recording, YouTube capture, frame capture, OpenRouter sign-in, AI calls, cost estimate, rendering |
 | `whisper-worker.js` | Speech-to-text in a background thread |

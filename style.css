@@ -51,8 +51,7 @@ body {
 .brand-name { font-family: var(--serif); font-size: 27px; font-weight: 600; white-space: nowrap; }
 .brand-name .dim { color: var(--muted); font-weight: 500; }
 .brand-sub { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin-top: 3px; }
-.signedout { display: flex; align-items: center; gap: 12px; font-size: 14px; }
-.signedin { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; }
+.signedin { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; color: var(--muted); font-size: 14px; margin: 0; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
 
 main { max-width: 920px; margin: 0 auto; padding: 0 16px 40px; }
@@ -151,8 +150,6 @@ select:focus, input:focus { outline: 2px solid var(--accent); outline-offset: 1p
 .analysis[open] .toggle::after { content: ' ▴'; }
 .analysis[open] summary { margin-bottom: 6px; }
 
-.needs h2 { font-family: var(--serif); font-size: 24px; font-weight: 600; margin: 0 0 8px; }
-.needs ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 14px; }
 .estimate { text-align: center; font-size: 13px; color: var(--text); margin: 8px 0 0; }
 .cost { font-size: 13px; color: var(--muted); margin: 10px 0 0; }
 .cancel { margin-top: 12px; }
@@ -198,9 +195,47 @@ a { color: var(--accent); }
   .brand-name { font-size: 18px; }
   .brand-sub { font-size: 9.5px; }
   .brand-sub { white-space: nowrap; }
-  .signedout { flex-direction: column-reverse; align-items: flex-end; gap: 4px; }
-  .signedout .btn { white-space: nowrap; }
-  .signedout .btn.link { font-size: 12px; }
-  #signin .long { display: none; }
   .story-body { font-size: 19px; }
+}
+
+/* ── numbered steps ─────────────────────────────────────── */
+.steps-list { list-style: none; padding: 0; margin: 0; }
+.step { display: grid; grid-template-columns: 80px minmax(0, 1fr); gap: 0 18px; align-items: start; transition: opacity .2s; }
+.step-num {
+  position: relative; font-family: var(--serif); font-size: 76px; font-weight: 600; line-height: .8;
+  color: var(--accent); text-align: center; padding-top: 4px; user-select: none;
+  font-variant-numeric: lining-nums; font-feature-settings: "lnum" 1;
+}
+.step-body h2 { font-family: var(--serif); font-size: 30px; font-weight: 600; line-height: 1.1; margin: 4px 0 10px; }
+.step-body > p { margin: 0 0 10px; }
+.step-lead { color: var(--muted); margin-top: -4px !important; }
+.step-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 10px; }
+.step .note { margin: 0; }
+
+.step.done .step-num { color: var(--ok); }
+.step.done .step-num::after {
+  content: '✓'; position: absolute; top: -6px; right: 4px; width: 24px; height: 24px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--ok); color: var(--surface);
+  font: 700 14px/1 var(--sans);
+}
+/* Step 1 shrinks to one faded line once signed in */
+#step-signin.done { opacity: .62; padding-top: 14px; padding-bottom: 14px; align-items: center; }
+#step-signin.done:hover, #step-signin.done:focus-within { opacity: 1; }
+#step-signin.done .step-num { font-size: 48px; }
+#step-signin.done h2 { font-size: 22px; margin: 0 0 2px; }
+
+.more { margin-top: 2px; }
+.more summary { cursor: pointer; color: var(--accent); font-size: 14px; font-weight: 500; margin-bottom: 12px; width: fit-content; }
+.progress { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+@media (max-width: 560px) {
+  /* number and title share the first row; everything else uses the full width */
+  .step { grid-template-columns: 48px minmax(0, 1fr); gap: 0 12px; align-items: center; }
+  .step-body { display: contents; }
+  .step-body > * { grid-column: 1 / -1; }
+  .step-body > h2 { grid-column: 2; font-size: 24px; margin: 0; }
+  .step-num { font-size: 54px; padding-top: 2px; }
+  .step-body > h2 + * { margin-top: 12px; }
+  #step-signin.done .step-num { font-size: 40px; }
+  #step-signin.done h2 { font-size: 19px; }
 }

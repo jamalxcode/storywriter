@@ -20,151 +20,178 @@
         <span class="brand-sub">Scene to Story</span>
       </span>
     </a>
-    <div id="auth" class="auth">
-      <div id="signedout" class="signedout">
-        <button id="signup" class="btn link">Create account</button>
-        <button id="signin" class="btn primary">Sign in<span class="long"> with OpenRouter</span></button>
-      </div>
-      <div id="signedin" class="signedin" hidden>
-        <span class="dot" aria-hidden="true"></span>
-        <span>Signed in</span>
-        <button id="signout" class="btn link">Sign out</button>
-      </div>
-    </div>
   </header>
 
   <main>
     <section class="hero">
       <h1>One minute of life,<br><em>written as a story.</em></h1>
-      <p>Record or upload a video up to 60 seconds long. The AI (Claude) watches it, reads any text on screen, describes the people, listens to what they say, and writes about the moment.</p>
+      <p>Give it a video up to one minute long, from your camera, a file or YouTube. The AI (Claude) watches it, reads any text on screen, listens to what people say, and writes the moment as prose, a poem or a screenplay. Your video never leaves your device.</p>
     </section>
 
-    <section class="card needs" id="needs">
-      <h2>What you need</h2>
-      <ol>
-        <li><strong>An OpenRouter account.</strong> It's free to create and is how you pay for the AI. Use "Create account" at the top if you don't have one.</li>
-        <li><strong>A little credit on it.</strong> Each story costs from under $0.01 to about $0.30, depending on the video and the AI you choose (about $0.17 with the recommended settings), and you'll see an estimate before you start. Add credit at <a href="https://openrouter.ai/settings/credits" target="_blank" rel="noopener">openrouter.ai/settings/credits</a>. $5 covers many stories.</li>
-        <li><strong>A video up to one minute long.</strong> Record one, upload one, or use a YouTube link. YouTube links need desktop Chrome or Edge.</li>
-      </ol>
-    </section>
-
-    <section class="card" id="capture">
-      <div class="tabs" role="tablist">
-        <button role="tab" class="tab active" data-tab="record" aria-selected="true">Record</button>
-        <button role="tab" class="tab" data-tab="upload" aria-selected="false">Upload</button>
-        <button role="tab" class="tab" data-tab="youtube" aria-selected="false">YouTube</button>
-      </div>
-
-      <div class="stage">
-        <video id="preview" playsinline muted></video>
-        <div id="yt-holder" class="yt-holder" hidden></div>
-        <div id="placeholder" class="placeholder">
-          <p>No video yet</p>
+    <ol class="steps-list">
+      <!-- 1 ── sign in -->
+      <li class="step card" id="step-signin">
+        <span class="step-num" aria-hidden="true">1</span>
+        <div class="step-body">
+          <h2>Sign in to OpenRouter</h2>
+          <div id="signedout">
+            <p>OpenRouter pays for the AI. The account is free; add a little credit and each story costs about <strong>$0.17</strong> (from under $0.01 to about $0.30, depending on the AI you choose). You'll see an estimate before anything is charged, and $5 covers many stories.</p>
+            <div class="step-actions">
+              <button id="signin" class="btn primary">Sign in with OpenRouter</button>
+              <button id="signup" class="btn">Create a free account</button>
+            </div>
+            <p class="note">New accounts need credit before the first story: <a href="https://openrouter.ai/settings/credits" target="_blank" rel="noopener">add credit at openrouter.ai</a>.</p>
+          </div>
+          <p id="signedin" class="signedin" hidden>
+            <span class="dot" aria-hidden="true"></span> You're signed in.
+            <a href="https://openrouter.ai/settings/credits" target="_blank" rel="noopener">Add credit</a> ·
+            <button id="signout" class="btn link">Sign out</button>
+          </p>
         </div>
-        <div id="rec-timer" class="rec-timer" hidden><span class="rec-dot"></span><span id="rec-time">0:00</span> / <span id="rec-total">1:00</span></div>
-      </div>
+      </li>
 
-      <div class="panel" data-panel="record">
-        <button id="cam-start" class="btn">Turn on camera</button>
-        <button id="cam-flip" class="btn" hidden>Flip camera</button>
-        <button id="rec-btn" class="btn rec" hidden>● Record</button>
-        <button id="rec-stop" class="btn" hidden>■ Stop</button>
-      </div>
+      <!-- 2 ── video -->
+      <li class="step card" id="step-video">
+        <span class="step-num" aria-hidden="true">2</span>
+        <div class="step-body">
+          <h2>Choose your video</h2>
+          <p class="step-lead">Up to one minute. Record it, upload a file, or use part of a YouTube video.</p>
+          <div class="tabs" role="tablist">
+            <button role="tab" class="tab active" data-tab="record" aria-selected="true">Record</button>
+            <button role="tab" class="tab" data-tab="upload" aria-selected="false">Upload</button>
+            <button role="tab" class="tab" data-tab="youtube" aria-selected="false">YouTube</button>
+          </div>
 
-      <div class="panel" data-panel="upload" hidden>
-        <label class="drop" id="drop">
-          <input type="file" id="file" accept="video/*" hidden>
-          <span><strong>Choose a video</strong> or drop it here</span>
-          <small>Only the first 60 seconds are used</small>
-        </label>
-      </div>
+          <div class="stage">
+            <video id="preview" playsinline muted></video>
+            <div id="yt-holder" class="yt-holder" hidden></div>
+            <div id="placeholder" class="placeholder">
+              <p>No video yet</p>
+            </div>
+            <div id="rec-timer" class="rec-timer" hidden><span class="rec-dot"></span><span id="rec-time">0:00</span> / <span id="rec-total">1:00</span></div>
+          </div>
 
-      <div class="panel yt-panel" data-panel="youtube" hidden>
-        <div class="yt-fields">
-          <label class="field grow">
-            <span>YouTube link</span>
-            <input id="yt-url" type="text" inputmode="url" placeholder="https://youtu.be/…?t=1m30s">
-          </label>
-          <label class="field">
-            <span>Start at</span>
-            <input id="yt-start" type="text" placeholder="0:00">
-          </label>
-          <label class="field">
-            <span>Length (sec)</span>
-            <input id="yt-length" type="number" min="1" max="60" step="1" value="60">
-          </label>
+          <div class="panel" data-panel="record">
+            <button id="cam-start" class="btn">Turn on camera</button>
+            <button id="cam-flip" class="btn" hidden>Flip camera</button>
+            <button id="rec-btn" class="btn rec" hidden>● Record</button>
+            <button id="rec-stop" class="btn" hidden>■ Stop</button>
+          </div>
+
+          <div class="panel" data-panel="upload" hidden>
+            <label class="drop" id="drop">
+              <input type="file" id="file" accept="video/*" hidden>
+              <span><strong>Choose a video</strong> or drop it here</span>
+              <small>Only the first 60 seconds are used</small>
+            </label>
+          </div>
+
+          <div class="panel yt-panel" data-panel="youtube" hidden>
+            <div class="yt-fields">
+              <label class="field grow">
+                <span>YouTube link</span>
+                <input id="yt-url" type="text" inputmode="url" placeholder="https://youtu.be/…?t=1m30s">
+              </label>
+              <label class="field">
+                <span>Start at</span>
+                <input id="yt-start" type="text" placeholder="0:00">
+              </label>
+              <label class="field">
+                <span>Length (sec)</span>
+                <input id="yt-length" type="number" min="1" max="60" step="1" value="60">
+              </label>
+            </div>
+            <button id="yt-capture" class="btn" disabled>● Capture clip</button>
+            <p class="note">When asked, share <strong>this tab</strong> and keep <strong>“Also share tab audio”</strong> ticked. The clip plays and records in real time. Works in desktop Chrome and Edge. Only capture videos you have the right to use.</p>
+            <p id="yt-msg" class="note warn" hidden></p>
+          </div>
         </div>
-        <button id="yt-capture" class="btn" disabled>● Capture clip</button>
-        <p class="note">When asked, share <strong>this tab</strong> and keep <strong>“Also share tab audio”</strong> ticked. The clip plays and records in real time. Works in desktop Chrome and Edge. Only capture videos you have the right to use.</p>
-        <p id="yt-msg" class="note warn" hidden></p>
-      </div>
-    </section>
+      </li>
 
-    <section class="card" id="options">
-      <div class="grid">
-        <label class="field">
-          <span>Style</span>
-          <select id="style">
-            <option value="prose">Literary prose with dialogue</option>
-            <option value="poem">Poetic scene</option>
-            <option value="screenplay">Screenplay</option>
-            <option value="noir">Noir short story</option>
-            <option value="haiku">Haiku sequence</option>
-            <option value="fairytale">Fairy tale</option>
-          </select>
-        </label>
-        <label class="field">
-          <span>AI that watches</span>
-          <select id="watch">
-            <option value="anthropic/claude-sonnet-5.5">Claude Sonnet 5.5 (recommended)</option>
-            <option value="anthropic/claude-haiku-5.5">Claude Haiku 5.5 (cheapest)</option>
-            <option value="anthropic/claude-opus-5.5">Claude Opus 5.5 (most detailed)</option>
-          </select>
-        </label>
-        <label class="field">
-          <span>AI that writes</span>
-          <select id="model">
-            <option value="anthropic/claude-opus-5.5">Claude Opus 5.5 (recommended)</option>
-            <option value="anthropic/claude-fable-5.1">Claude Fable 5.1 (finest, costliest)</option>
-            <option value="anthropic/claude-sonnet-5.5">Claude Sonnet 5.5 (faster)</option>
-            <option value="anthropic/claude-haiku-5.5">Claude Haiku 5.5 (cheapest)</option>
-          </select>
-        </label>
-        <label class="field">
-          <span>Frames</span>
-          <select id="fps">
-            <option value="1">1 per second</option>
-            <option value="2">2 per second (fast action)</option>
-            <option value="0.5">1 every 2 seconds (cheaper)</option>
-          </select>
-        </label>
-        <label class="field">
-          <span>Language</span>
-          <input id="lang" type="text" placeholder="Same as video" maxlength="40">
-        </label>
-      </div>
-      <label class="field">
-        <span>Extra direction <small>(optional)</small></span>
-        <input id="direction" type="text" placeholder="e.g. tell it from the dog's point of view" maxlength="300">
-      </label>
-      <button id="go" class="btn primary big" disabled>Write the story</button>
-      <p id="hint" class="hint">Sign in and add a video to begin.</p>
-      <p id="estimate" class="estimate" hidden></p>
-      <p class="privacy-note">🔒 Your video and sound stay on this device. Only still frames and a text transcript are sent to the AI. <a href="#privacy">Details</a></p>
-    </section>
+      <!-- 3 ── style -->
+      <li class="step card" id="step-style">
+        <span class="step-num" aria-hidden="true">3</span>
+        <div class="step-body">
+          <h2>Choose how it's written</h2>
+          <div class="grid">
+            <label class="field">
+              <span>Style</span>
+              <select id="style">
+                <option value="prose">Literary prose with dialogue</option>
+                <option value="poem">Poetic scene</option>
+                <option value="screenplay">Screenplay</option>
+                <option value="noir">Noir short story</option>
+                <option value="haiku">Haiku sequence</option>
+                <option value="fairytale">Fairy tale</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Language</span>
+              <input id="lang" type="text" placeholder="Same as video" maxlength="40">
+            </label>
+          </div>
+          <label class="field">
+            <span>Extra direction <small>(optional)</small></span>
+            <input id="direction" type="text" placeholder="e.g. tell it from the dog's point of view" maxlength="300">
+          </label>
+          <details class="more">
+            <summary>More options: AI models and detail</summary>
+            <div class="grid">
+              <label class="field">
+                <span>AI that watches</span>
+                <select id="watch">
+                  <option value="anthropic/claude-sonnet-5.5">Claude Sonnet 5.5 (recommended)</option>
+                  <option value="anthropic/claude-haiku-5.5">Claude Haiku 5.5 (cheapest)</option>
+                  <option value="anthropic/claude-opus-5.5">Claude Opus 5.5 (most detailed)</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>AI that writes</span>
+                <select id="model">
+                  <option value="anthropic/claude-opus-5.5">Claude Opus 5.5 (recommended)</option>
+                  <option value="anthropic/claude-fable-5.1">Claude Fable 5.1 (finest, costliest)</option>
+                  <option value="anthropic/claude-sonnet-5.5">Claude Sonnet 5.5 (faster)</option>
+                  <option value="anthropic/claude-haiku-5.5">Claude Haiku 5.5 (cheapest)</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Frames</span>
+                <select id="fps">
+                  <option value="1">1 per second</option>
+                  <option value="2">2 per second (fast action)</option>
+                  <option value="0.5">1 every 2 seconds (cheaper)</option>
+                </select>
+              </label>
+            </div>
+          </details>
+        </div>
+      </li>
 
-    <section class="card" id="progress" hidden>
-      <ol class="steps">
-        <li data-step="frames"><span class="ico"></span>Capturing frames</li>
-        <li data-step="audio"><span class="ico"></span>Listening to the audio</li>
-        <li data-step="analyze"><span class="ico"></span>Watching the scene</li>
-        <li data-step="write"><span class="ico"></span>Writing</li>
-      </ol>
-      <div id="progress-detail" class="detail" aria-live="polite"></div>
-      <div id="error" class="error" role="alert" hidden></div>
-      <p id="cost" class="cost" hidden></p>
-      <button id="cancel" class="btn small cancel" hidden>Cancel</button>
-    </section>
+      <!-- 4 ── write -->
+      <li class="step card" id="step-write">
+        <span class="step-num" aria-hidden="true">4</span>
+        <div class="step-body">
+          <h2>Write the story</h2>
+          <button id="go" class="btn primary big" disabled>Write the story</button>
+          <p id="hint" class="hint">Sign in and add a video to begin.</p>
+          <p id="estimate" class="estimate" hidden></p>
+          <p class="privacy-note">🔒 Your video and sound stay on this device. Only still frames and a text transcript are sent to the AI. <a href="#privacy">Details</a></p>
+
+          <div id="progress" class="progress" hidden>
+            <ol class="steps">
+              <li data-step="frames"><span class="ico"></span>Capturing frames</li>
+              <li data-step="audio"><span class="ico"></span>Listening to the audio</li>
+              <li data-step="analyze"><span class="ico"></span>Watching the scene</li>
+              <li data-step="write"><span class="ico"></span>Writing</li>
+            </ol>
+            <div id="progress-detail" class="detail" aria-live="polite"></div>
+            <div id="error" class="error" role="alert" hidden></div>
+            <p id="cost" class="cost" hidden></p>
+            <button id="cancel" class="btn small cancel" hidden>Cancel</button>
+          </div>
+        </div>
+      </li>
+    </ol>
 
     <section id="results" hidden>
       <article class="card story">
