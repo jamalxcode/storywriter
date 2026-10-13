@@ -1,5 +1,7 @@
 # Scene to Story
 
+**Live:** https://story.sala.company
+
 Record or upload a video up to one minute long. The AI (currently Claude) watches it, reads any text on screen, describes the people, listens to what they say, and writes about the moment: literary prose with dialogue, a poem, a screenplay, a noir story, a haiku sequence or a fairy tale.
 
 It is a static site for **GitHub Pages**. There is no server and nothing to pay for hosting.
