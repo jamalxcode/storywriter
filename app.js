@@ -564,8 +564,8 @@ function transcribe(audio, onStatus) {
   });
 }
 
-// ---------- Claude via OpenRouter ----------
-async function callClaude({ messages, maxTokens, onDelta }) {
+// ---------- AI (Claude) via OpenRouter ----------
+async function callAI({ messages, maxTokens, onDelta }) {
   const res = await fetch(`${OPENROUTER}/api/v1/chat/completions`, {
     method: 'POST',
     headers: {
@@ -587,12 +587,12 @@ async function callClaude({ messages, maxTokens, onDelta }) {
     try { const j = await res.json(); msg = j.error?.message || msg; } catch {}
     if (res.status === 401) { signOut(); throw new Error('Your OpenRouter session expired. Please sign in again.'); }
     if (res.status === 402) throw new Error('Your OpenRouter account is out of credit. Add credit at openrouter.ai/settings/credits.');
-    throw new Error(`Claude request failed: ${msg}`);
+    throw new Error(`AI request failed: ${msg}`);
   }
 
   if (!onDelta) {
     const j = await res.json();
-    if (j.error) throw new Error(j.error.message || 'Claude returned an error');
+    if (j.error) throw new Error(j.error.message || 'The AI returned an error');
     return j.choices?.[0]?.message?.content || '';
   }
 
@@ -613,7 +613,7 @@ async function callClaude({ messages, maxTokens, onDelta }) {
       if (payload === '[DONE]') return full;
       let j;
       try { j = JSON.parse(payload); } catch { continue; }
-      if (j.error) throw new Error(j.error.message || 'Claude returned an error');
+      if (j.error) throw new Error(j.error.message || 'The AI returned an error');
       const delta = j.choices?.[0]?.delta?.content;
       if (delta) { full += delta; onDelta(full); }
     }
@@ -657,7 +657,7 @@ function parseJson(text) {
   const cleaned = text.replace(/```(?:json)?/g, '');
   const start = cleaned.indexOf('{');
   const end = cleaned.lastIndexOf('}');
-  if (start < 0 || end < start) throw new Error('Claude did not return a readable analysis. Please try again.');
+  if (start < 0 || end < start) throw new Error('The AI did not return a readable analysis. Please try again.');
   return JSON.parse(cleaned.slice(start, end + 1));
 }
 
@@ -668,7 +668,7 @@ async function analyze(frames, duration, transcript) {
     content.push({ type: 'image_url', image_url: { url: f.dataUrl } });
   }
   content.push({ type: 'text', text: `Speech transcript (automatic, may contain errors):\n${transcriptText(transcript)}` });
-  const text = await callClaude({
+  const text = await callAI({
     messages: [{ role: 'system', content: ANALYZE_SYSTEM }, { role: 'user', content }],
     maxTokens: 16000,
   });
@@ -708,7 +708,7 @@ async function write() {
   body.className = `story-body ${style === 'poem' || style === 'haiku' ? 'verse' : ''} ${style === 'screenplay' ? 'screenplay' : ''}`;
   body.innerHTML = '<p class="cursor"></p>';
   $('#story-title').textContent = state.analysis?.title || 'The story';
-  state.story = await callClaude({
+  state.story = await callAI({
     messages: writeMessages(state.analysis, state.transcript),
     maxTokens: 16000,
     onDelta: (text) => renderStory(text, true),
@@ -838,6 +838,7 @@ async function run() {
   $('#progress').hidden = false;
   ['frames', 'audio', 'analyze', 'write'].forEach((s) => step(s, null));
   $('#results').hidden = true;
+  $('.analysis').open = false;
 
   let current = 'frames';
   try {
@@ -862,14 +863,14 @@ async function run() {
 
     current = 'analyze';
     step('analyze', 'active');
-    detail(`Claude is studying ${frames.length} frames…`);
+    detail(`The AI is studying ${frames.length} frames…`);
     state.analysis = await analyze(frames, duration, state.transcript);
     renderAnalysis(state.analysis, frames);
     step('analyze', 'done');
 
     current = 'write';
     step('write', 'active');
-    detail('Claude is writing…');
+    detail('The AI is writing…');
     $('#results').hidden = false;
     $('#results').scrollIntoView({ behavior: 'smooth', block: 'start' });
     await write();
@@ -907,6 +908,9 @@ function storyMarkdown() {
   return `# ${$('#story-title').textContent}\n\n${state.story.replace(/^\s*#\s+.+\n?/, '').trim()}\n`;
 }
 
+$('.analysis').addEventListener('toggle', (e) => {
+  e.target.querySelector('.toggle').textContent = e.target.open ? 'Hide' : 'Show';
+});
 $('#go').addEventListener('click', run);
 $('#rewrite').addEventListener('click', rewrite);
 $('#signin').addEventListener('click', () => signIn(false));

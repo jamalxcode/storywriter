@@ -1,6 +1,6 @@
 # Scene to Story
 
-Record or upload a video up to one minute long. Claude watches it, reads any text on screen, describes the people, listens to what they say, and writes about the moment: literary prose with dialogue, a poem, a screenplay, a noir story, a haiku sequence or a fairy tale.
+Record or upload a video up to one minute long. The AI (currently Claude) watches it, reads any text on screen, describes the people, listens to what they say, and writes about the moment: literary prose with dialogue, a poem, a screenplay, a noir story, a haiku sequence or a fairy tale.
 
 It is a static site for **GitHub Pages**. There is no server and nothing to pay for hosting.
 
@@ -17,7 +17,7 @@ Video (camera, upload, or a YouTube link + timestamp; ≤ 60 s)
 
 - **Sign-in:** "Sign in with OpenRouter" uses OAuth PKCE, so it needs no server and no secret. Each visitor's usage is billed to **their own** OpenRouter account. No key is ever stored in this repo.
 - **YouTube:** paste a link (a `?t=1m30s` timestamp fills in the start time) and choose a length, which defaults to 60 seconds. A static page can't download YouTube videos, so the clip plays in YouTube's own embedded player while the page records its own tab, cropped to the player. When the browser asks, share **this tab** with **"Also share tab audio"** ticked. Recording happens in real time, and only desktop Chrome and Edge can do it (Firefox records without sound). Videos whose owners block embedding can't be used. Only capture videos you have the right to use.
-- **Privacy:** the video and audio never leave the device. Only the still frames and the transcript go to Claude.
+- **Privacy:** the video and audio never leave the device. Only the still frames and the transcript go to the AI. Stories and analysis exist only on the open page (users keep them with Copy or Download). The page has a "Your privacy" section that explains this to users.
 - **Speech model:** Whisper base (8-bit), about 75 MB, downloaded once from Hugging Face and then cached by the browser. It runs on WebAssembly in a background thread, so the page stays responsive.
 
 ## Cost per video (paid by the visitor through OpenRouter)

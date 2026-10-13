@@ -139,7 +139,28 @@ select:focus, input:focus { outline: 2px solid var(--accent); outline-offset: 1p
 .story-body.screenplay { font-family: 'Courier New', monospace; font-size: 15px; white-space: pre-wrap; }
 .story-body .cursor::after { content: '▍'; color: var(--accent); animation: blink 1s infinite; }
 
-.analysis h2 { font-family: var(--serif); font-size: 26px; font-weight: 600; margin: 0 0 6px; }
+.analysis h2 { font-family: var(--serif); font-size: 26px; font-weight: 600; margin: 0; }
+.analysis summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; list-style: none; }
+.analysis summary::-webkit-details-marker { display: none; }
+.analysis .toggle { font-size: 13px; font-weight: 500; color: var(--accent); white-space: nowrap; }
+.analysis .toggle::after { content: ' ▾'; }
+.analysis[open] .toggle::after { content: ' ▴'; }
+.analysis[open] summary { margin-bottom: 6px; }
+
+.privacy h2 { font-family: var(--serif); font-size: 26px; font-weight: 600; margin: 0 0 6px; }
+.privacy .lead { margin: 0 0 14px; }
+.privacy-list { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 10px; }
+.privacy-list li { display: grid; grid-template-columns: 150px 1fr; gap: 12px; align-items: start; font-size: 14px; }
+.where { font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 99px; text-align: center; }
+.where.local { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+.where.sent { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+.privacy .small { font-size: 12.5px; color: var(--muted); margin: 0; }
+.privacy-note { text-align: center; font-size: 12.5px; color: var(--muted); margin: 6px 0 0; }
+a { color: var(--accent); }
+@media (max-width: 560px) {
+  .privacy-list li { grid-template-columns: 1fr; gap: 4px; }
+  .where { justify-self: start; }
+}
 .analysis h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 18px 0 8px; }
 .analysis-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0 24px; }
 .chips { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }

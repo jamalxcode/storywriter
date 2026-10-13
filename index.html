@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Scene to Story</title>
-  <meta name="description" content="Record or upload a one-minute video and let Claude turn it into prose or poetry.">
+  <meta name="description" content="Record or upload a one-minute video and let AI turn it into prose or poetry.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -32,7 +32,7 @@
   <main>
     <section class="hero">
       <h1>One minute of life,<br><em>written as a story.</em></h1>
-      <p>Record or upload a video up to 60 seconds long. Claude watches it, reads any text on screen, describes the people, listens to what they say, and writes about the moment.</p>
+      <p>Record or upload a video up to 60 seconds long. The AI (Claude) watches it, reads any text on screen, describes the people, listens to what they say, and writes about the moment.</p>
     </section>
 
     <section class="card" id="capture">
@@ -101,7 +101,7 @@
           </select>
         </label>
         <label class="field">
-          <span>Model</span>
+          <span>AI model</span>
           <select id="model">
             <option value="anthropic/claude-opus-5.5">Claude Opus 5.5 (best)</option>
             <option value="anthropic/claude-sonnet-5.5">Claude Sonnet 5.5 (faster)</option>
@@ -128,6 +128,7 @@
       </label>
       <button id="go" class="btn primary big" disabled>Write the story</button>
       <p id="hint" class="hint">Sign in and add a video to begin.</p>
+      <p class="privacy-note">🔒 Your video and sound stay on this device. Only still frames and a text transcript are sent to the AI. <a href="#privacy">Details</a></p>
     </section>
 
     <section class="card" id="progress" hidden>
@@ -154,8 +155,8 @@
         <div id="story" class="story-body"></div>
       </article>
 
-      <div class="card analysis">
-        <h2>What Claude saw</h2>
+      <details class="card analysis">
+        <summary><h2>What the AI (Claude) saw</h2><span class="toggle">Show</span></summary>
         <div class="analysis-grid">
           <div>
             <h3>Setting</h3>
@@ -173,12 +174,24 @@
         <h3>Dialogue</h3>
         <div id="a-dialogue" class="dialogue"></div>
         <div id="filmstrip" class="filmstrip"></div>
-      </div>
+      </details>
+    </section>
+
+    <section class="card privacy" id="privacy">
+      <h2>Your privacy</h2>
+      <p class="lead">This site has no server and no database. It never stores your video, your stories or your account anywhere online. Nothing is sent back to this website.</p>
+      <ul class="privacy-list">
+        <li><span class="where local">Stays on your device</span><div><strong>Your video and its sound.</strong> They're processed in your browser and never uploaded. The speech is turned into text on your device, too.</div></li>
+        <li><span class="where sent">Sent to the AI</span><div><strong>Still frames and the speech transcript.</strong> When you press "Write the story", these are sent to the AI (Claude, made by Anthropic) through OpenRouter, so it can write about them. Their privacy policies cover how they handle it.</div></li>
+        <li><span class="where local">Stays on your device</span><div><strong>Your story and the AI's notes.</strong> Shown on this page only and gone when you close or reload it. Use Copy or Download to keep a story.</div></li>
+        <li><span class="where local">Saved in this browser</span><div><strong>Your OpenRouter sign-in and your settings.</strong> Kept so you stay signed in. "Sign out" removes them.</div></li>
+      </ul>
+      <p class="small">The page also loads its fonts from Google Fonts, its speech model from Hugging Face and jsDelivr, and the YouTube player when you use a YouTube link. Like any website, these services see your IP address, but they receive none of your content. AI use is billed to your own OpenRouter account.</p>
     </section>
   </main>
 
   <footer class="foot">
-    Runs entirely in your browser. Video and audio stay on your device; only still frames and the transcript are sent to Claude via OpenRouter, billed to your OpenRouter account.
+    Your video never leaves your device. <a href="#privacy">How your data is handled</a>
   </footer>
 
   <script type="module" src="app.js"></script>
