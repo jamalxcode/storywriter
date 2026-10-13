@@ -85,17 +85,17 @@ main { max-width: 920px; margin: 0 auto; padding: 0 16px 40px; }
 .tab { font: 500 14px var(--sans); background: none; border: none; color: var(--muted); padding: 7px 16px; border-radius: 7px; cursor: pointer; }
 .tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
 
-.stage { position: relative; aspect-ratio: 16 / 9; background: #0d0b09; border-radius: 12px; overflow: hidden; margin-bottom: 14px; }
+.stage { position: relative; aspect-ratio: 16 / 9; background: #0d0b09; border-radius: 12px; overflow: hidden; }
 .stage video { width: 100%; height: 100%; object-fit: contain; display: block; }
 .placeholder { position: absolute; inset: 0; display: grid; place-items: center; color: #8a7f72; font-family: var(--serif); font-size: 20px; font-style: italic; }
 .rec-timer { position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,.6); color: #fff; padding: 4px 10px; border-radius: 99px; font-size: 13px; display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
 .rec-dot { width: 8px; height: 8px; border-radius: 50%; background: #f33; animation: blink 1s infinite; }
 @keyframes blink { 50% { opacity: .2; } }
 
-.panel { display: flex; flex-wrap: wrap; gap: 8px; }
+.panel { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
 .yt-holder { position: absolute; inset: 0; }
 .yt-holder iframe, .yt-holder > div { width: 100%; height: 100%; border: 0; display: block; }
-.yt-panel { flex-direction: column; align-items: stretch; }
+.yt-panel { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
 .yt-panel .btn { align-self: flex-start; }
 .yt-fields { display: flex; flex-wrap: wrap; gap: 0 10px; }
 .yt-fields .field { margin-bottom: 4px; width: 110px; }

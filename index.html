@@ -62,15 +62,6 @@
             <button role="tab" class="tab" data-tab="youtube" aria-selected="false">YouTube</button>
           </div>
 
-          <div class="stage">
-            <video id="preview" playsinline muted></video>
-            <div id="yt-holder" class="yt-holder" hidden></div>
-            <div id="placeholder" class="placeholder">
-              <p>No video yet</p>
-            </div>
-            <div id="rec-timer" class="rec-timer" hidden><span class="rec-dot"></span><span id="rec-time">0:00</span> / <span id="rec-total">1:00</span></div>
-          </div>
-
           <div class="panel" data-panel="record">
             <button id="cam-start" class="btn">Turn on camera</button>
             <button id="cam-flip" class="btn" hidden>Flip camera</button>
@@ -104,6 +95,15 @@
             <button id="yt-capture" class="btn" disabled>● Capture clip</button>
             <p class="note">When asked, share <strong>this tab</strong> and keep <strong>“Also share tab audio”</strong> ticked. The clip plays and records in real time. Works in desktop Chrome and Edge. Only capture videos you have the right to use.</p>
             <p id="yt-msg" class="note warn" hidden></p>
+          </div>
+
+          <div class="stage">
+            <video id="preview" playsinline muted></video>
+            <div id="yt-holder" class="yt-holder" hidden></div>
+            <div id="placeholder" class="placeholder">
+              <p>No video yet</p>
+            </div>
+            <div id="rec-timer" class="rec-timer" hidden><span class="rec-dot"></span><span id="rec-time">0:00</span> / <span id="rec-total">1:00</span></div>
           </div>
         </div>
       </li>
