@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Scene to Story</title>
   <meta name="description" content="Record or upload a one-minute video and let AI turn it into prose or poetry.">
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -12,10 +13,13 @@
 </head>
 <body>
   <header class="top">
-    <div class="brand">
-      <span class="logo" aria-hidden="true">✦</span>
-      <span>Scene to Story</span>
-    </div>
+    <a class="brand" href="./" aria-label="story.sala.company — Scene to Story, home">
+      <img class="logo" src="logo.svg" width="58" height="58" alt="">
+      <span class="brand-text">
+        <span class="brand-name">story<span class="dim">.sala.company</span></span>
+        <span class="brand-sub">Scene to Story</span>
+      </span>
+    </a>
     <div id="auth" class="auth">
       <div id="signedout" class="signedout">
         <button id="signup" class="btn link">Create account</button>

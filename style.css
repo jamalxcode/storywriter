@@ -45,8 +45,12 @@ body {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   max-width: 920px; margin: 0 auto; padding: 18px 16px;
 }
-.brand { display: flex; align-items: center; gap: 10px; font-family: var(--serif); font-size: 22px; font-weight: 600; }
-.logo { color: var(--accent); }
+.brand { display: flex; align-items: center; gap: 12px; color: var(--text); text-decoration: none; min-width: 0; }
+.logo { width: 58px; height: 58px; flex: none; border-radius: 50%; box-shadow: 0 2px 6px rgba(60, 40, 20, .18); }
+.brand-text { display: flex; flex-direction: column; line-height: 1.1; min-width: 0; }
+.brand-name { font-family: var(--serif); font-size: 27px; font-weight: 600; white-space: nowrap; }
+.brand-name .dim { color: var(--muted); font-weight: 500; }
+.brand-sub { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin-top: 3px; }
 .signedout { display: flex; align-items: center; gap: 12px; font-size: 14px; }
 .signedin { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
@@ -189,8 +193,14 @@ a { color: var(--accent); }
 
 @media (max-width: 560px) {
   .card { padding: 16px; }
-  .brand span:last-child { font-size: 19px; }
-  .brand, .signedout .btn { white-space: nowrap; }
+  .brand { gap: 9px; }
+  .logo { width: 44px; height: 44px; }
+  .brand-name { font-size: 18px; }
+  .brand-sub { font-size: 9.5px; }
+  .brand-sub { white-space: nowrap; }
+  .signedout { flex-direction: column-reverse; align-items: flex-end; gap: 4px; }
+  .signedout .btn { white-space: nowrap; }
+  .signedout .btn.link { font-size: 12px; }
   #signin .long { display: none; }
   .story-body { font-size: 19px; }
 }
