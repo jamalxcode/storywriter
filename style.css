@@ -46,7 +46,7 @@ body {
   max-width: 920px; margin: 0 auto; padding: 18px 16px;
 }
 .brand { display: flex; align-items: center; gap: 12px; color: var(--text); text-decoration: none; min-width: 0; }
-.logo { width: 58px; height: 58px; flex: none; border-radius: 50%; box-shadow: 0 2px 6px rgba(60, 40, 20, .18); }
+.logo { width: 58px; height: 58px; flex: none; filter: drop-shadow(0 2px 3px rgba(60, 40, 20, .2)); }
 .brand-text { display: flex; flex-direction: column; line-height: 1.1; min-width: 0; }
 .brand-name { font-family: var(--serif); font-size: 27px; font-weight: 600; white-space: nowrap; }
 .brand-name .dim { color: var(--muted); font-weight: 500; }

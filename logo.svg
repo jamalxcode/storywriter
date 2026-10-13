@@ -40,4 +40,11 @@
     <path d="M22 46.5 C22.8 48 24 49 25.5 49.6 M27 44.6 C27.4 46.8 28.2 48.6 29.2 50.4 M32 44.4 L32 51 M37 44.6 C36.6 46.8 35.8 48.6 34.8 50.4 M42 46.5 C41.2 48 40 49 38.5 49.6" stroke="#2a241d" stroke-width="0.55" fill="none" stroke-linecap="round"/>
   </g>
   <circle cx="32" cy="32" r="30.5" fill="none" stroke="#2a241d" stroke-opacity=".25" stroke-width="1"/>
+  <!-- quill, breaking out of the badge -->
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <path d="M47.6 46.2 C42.6 38.5 49.5 23.5 61.2 15.6 C59.6 26.5 55.6 38.4 48.6 47 Z" fill="#fbf7ef" stroke="#2a241d" stroke-width="0.8"/>
+    <path d="M50.6 36.4 L47.4 35.8 M52.6 31.6 L49.6 30.4 M54.8 26.8 L52.2 25.2 M51.6 39 L54.8 38.6 M53.6 34.2 L56.6 33.4 M55.6 29.4 L58.2 28" stroke="#2a241d" stroke-width="0.45" fill="none" opacity=".7"/>
+    <path d="M41.2 60.6 L59.8 19" stroke="#2a241d" stroke-width="0.9" fill="none"/>
+    <path d="M40.6 61.9 L42.6 57.4" stroke="#1a140f" stroke-width="1.6" fill="none"/>
+  </g>
 </svg>
