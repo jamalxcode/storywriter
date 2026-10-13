@@ -36,15 +36,23 @@ function callbackUrl() {
   return location.origin + location.pathname;
 }
 
-async function signIn() {
+async function signIn(newAccount = false) {
   const verifier = b64url(crypto.getRandomValues(new Uint8Array(32)));
   const challenge = b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
   store.set('pkce_verifier', verifier, sessionStorage);
-  const url = new URL(`${OPENROUTER}/auth`);
-  url.searchParams.set('callback_url', callbackUrl());
-  url.searchParams.set('code_challenge', challenge);
-  url.searchParams.set('code_challenge_method', 'S256');
-  location.href = url.toString();
+  const auth = new URL(`${OPENROUTER}/auth`);
+  auth.searchParams.set('callback_url', callbackUrl());
+  auth.searchParams.set('code_challenge', challenge);
+  auth.searchParams.set('code_challenge_method', 'S256');
+  // OpenRouter's /auth sends logged-out visitors to its sign-up form, so returning
+  // users go through the sign-in page first, which then continues to /auth.
+  if (newAccount) {
+    location.href = auth.toString();
+  } else {
+    const signin = new URL(`${OPENROUTER}/sign-in`);
+    signin.searchParams.set('redirect_url', auth.toString());
+    location.href = signin.toString();
+  }
 }
 
 async function finishSignIn() {
@@ -77,7 +85,7 @@ function signOut() {
 }
 
 function renderAuth() {
-  $('#signin').hidden = !!state.key;
+  $('#signedout').hidden = !!state.key;
   $('#signedin').hidden = !state.key;
   updateGo();
 }
@@ -91,6 +99,7 @@ document.querySelectorAll('.tab').forEach((tab) => {
       t.setAttribute('aria-selected', on);
     });
     document.querySelectorAll('.panel').forEach((p) => { p.hidden = p.dataset.panel !== tab.dataset.tab; });
+    showYouTubeStage(tab.dataset.tab === 'youtube' && !!ytPlayer && !state.video);
   });
 });
 
@@ -157,15 +166,21 @@ function startRecording() {
   $('#rec-stop').hidden = false;
   $('#rec-timer').hidden = false;
   $('#rec-time').textContent = '0:00';
+  $('#rec-total').textContent = clock(MAX_SECONDS);
   recTimer = setInterval(() => {
     const s = (performance.now() - recStart) / 1000;
-    $('#rec-time').textContent = `0:${String(Math.floor(Math.min(s, 60))).padStart(2, '0')}`;
+    $('#rec-time').textContent = clock(Math.min(s, MAX_SECONDS));
     if (s >= MAX_SECONDS) stopRecording();
   }, 250);
 }
 
 function stopRecording() {
   if (recorder && recorder.state !== 'inactive') recorder.stop();
+}
+
+function clock(s) {
+  const whole = Math.floor(s);
+  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
 }
 
 $('#cam-start').addEventListener('click', startCamera);
@@ -202,6 +217,7 @@ function setVideo(blob, knownDuration) {
   clearVideo();
   const url = URL.createObjectURL(blob);
   state.video = { blob, url, knownDuration };
+  showYouTubeStage(false);
   preview.srcObject = null;
   preview.src = url;
   preview.muted = false;
@@ -210,6 +226,214 @@ function setVideo(blob, knownDuration) {
   hideError();
   updateGo();
 }
+
+// ---------- YouTube ----------
+// A static page can't download YouTube videos, so we play the clip in the official
+// embedded player and record this browser tab (cropped to the player) while it plays.
+const ytHolder = $('#yt-holder');
+let ytPlayer = null;
+let ytApi = null;
+let ytLoaded = null; // { id }
+
+function showYouTubeStage(on) {
+  ytHolder.hidden = !on;
+  preview.hidden = on;
+  if (!on && ytPlayer?.pauseVideo) ytPlayer.pauseVideo();
+  $('#placeholder').hidden = on || !!state.video || !!stream;
+}
+
+function parseTime(s) {
+  s = String(s ?? '').trim().toLowerCase();
+  if (!s) return null;
+  if (/^\d+(\.\d+)?s?$/.test(s)) return parseFloat(s);
+  if (/^\d+(:\d{1,2}){1,2}$/.test(s)) return s.split(':').reduce((a, p) => a * 60 + Number(p), 0);
+  const m = s.match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/);
+  if (m && (m[1] || m[2] || m[3])) return (+m[1] || 0) * 3600 + (+m[2] || 0) * 60 + (+m[3] || 0);
+  return NaN;
+}
+
+function parseYouTube(input) {
+  let url;
+  try { url = new URL(input.trim()); } catch { return null; }
+  const host = url.hostname.replace(/^(www|m|music)\./, '');
+  let id = null;
+  if (host === 'youtu.be') id = url.pathname.split('/')[1];
+  else if (host === 'youtube.com' || host === 'youtube-nocookie.com') {
+    id = url.searchParams.get('v') || (url.pathname.match(/^\/(?:shorts|embed|live|v)\/([\w-]{11})/) || [])[1];
+  }
+  if (!id || !/^[\w-]{11}$/.test(id)) return null;
+  return { id, start: parseTime(url.searchParams.get('t') || url.searchParams.get('start')) };
+}
+
+function loadYouTubeApi() {
+  if (!ytApi) {
+    ytApi = new Promise((resolve, reject) => {
+      if (window.YT?.Player) { resolve(); return; }
+      window.onYouTubeIframeAPIReady = resolve;
+      const s = document.createElement('script');
+      s.src = 'https://www.youtube.com/iframe_api';
+      s.onerror = () => { ytApi = null; reject(new Error('Could not load the YouTube player.')); };
+      document.head.append(s);
+    });
+  }
+  return ytApi;
+}
+
+function ytMessage(text) {
+  const m = $('#yt-msg');
+  m.textContent = text || '';
+  m.hidden = !text;
+}
+
+function ytSettings() {
+  const start = parseTime($('#yt-start').value) ?? 0;
+  const length = Math.round(Number($('#yt-length').value) || MAX_SECONDS);
+  return { start, length: Math.min(Math.max(length, 1), MAX_SECONDS) };
+}
+
+async function loadYouTube(id, start) {
+  await loadYouTubeApi();
+  stopCamera();
+  clearVideo();
+  showYouTubeStage(true);
+  if (ytPlayer && ytLoaded?.id === id) {
+    ytPlayer.cueVideoById({ videoId: id, startSeconds: start });
+    return;
+  }
+  if (ytPlayer) ytPlayer.destroy();
+  ytHolder.innerHTML = '<div id="yt-player"></div>';
+  ytLoaded = { id };
+  await new Promise((resolve) => {
+    ytPlayer = new YT.Player('yt-player', {
+      videoId: id,
+      playerVars: { start: Math.floor(start), playsinline: 1, rel: 0 },
+      events: {
+        onReady: resolve,
+        onError: (e) => {
+          ytMessage([101, 150].includes(e.data)
+            ? "This video's owner doesn't allow it to be played on other sites."
+            : 'YouTube could not play this video.');
+          $('#yt-capture').disabled = true;
+        },
+      },
+    });
+  });
+}
+
+let ytTimer = null;
+async function onYouTubeInput() {
+  clearTimeout(ytTimer);
+  ytTimer = setTimeout(async () => {
+    ytMessage('');
+    const parsed = parseYouTube($('#yt-url').value);
+    $('#yt-capture').disabled = !parsed;
+    if (!parsed) {
+      if ($('#yt-url').value.trim()) ytMessage("That doesn't look like a YouTube video link.");
+      return;
+    }
+    if (parsed.start != null && !$('#yt-start').dataset.touched) $('#yt-start').value = clock(parsed.start);
+    if (Number.isNaN(parseTime($('#yt-start').value))) { ytMessage('Start time should look like 1:30 or 90.'); return; }
+    try {
+      await loadYouTube(parsed.id, ytSettings().start);
+    } catch (e) {
+      ytMessage(e.message);
+    }
+  }, 400);
+}
+
+$('#yt-url').addEventListener('input', onYouTubeInput);
+$('#yt-start').addEventListener('input', () => { $('#yt-start').dataset.touched = '1'; onYouTubeInput(); });
+
+function waitFor(cond, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const t0 = performance.now();
+    const iv = setInterval(() => {
+      if (cond()) { clearInterval(iv); resolve(); }
+      else if (performance.now() - t0 > timeoutMs) { clearInterval(iv); reject(new Error('The video did not start playing.')); }
+    }, 100);
+  });
+}
+
+async function captureYouTube() {
+  if (!navigator.mediaDevices?.getDisplayMedia) {
+    ytMessage('Capturing YouTube needs a desktop browser. Chrome or Edge work best.');
+    return;
+  }
+  if (!ytPlayer?.seekTo) return;
+  const { start, length } = ytSettings();
+  ytMessage('');
+
+  // Must be called straight from the click so the browser allows the share prompt.
+  let cap;
+  try {
+    cap = await navigator.mediaDevices.getDisplayMedia({
+      video: { displaySurface: 'browser', frameRate: 30 },
+      audio: true,
+      preferCurrentTab: true,
+      selfBrowserSurface: 'include',
+      surfaceSwitching: 'exclude',
+      systemAudio: 'include',
+    });
+  } catch (e) {
+    if (e.name !== 'NotAllowedError') ytMessage(`Could not capture the tab: ${e.message}`);
+    return;
+  }
+
+  clearVideo();
+  showYouTubeStage(true);
+  ytHolder.scrollIntoView({ block: 'center' });
+  const [track] = cap.getVideoTracks();
+  if (window.CropTarget && track.cropTo) {
+    try { await track.cropTo(await CropTarget.fromElement(ytHolder)); } catch { /* record the whole tab */ }
+  }
+  const hasAudio = cap.getAudioTracks().length > 0;
+
+  $('#yt-capture').disabled = true;
+  try {
+    ytPlayer.seekTo(start, true);
+    ytPlayer.playVideo();
+    await waitFor(() => ytPlayer.getPlayerState() === YT.PlayerState.PLAYING
+      && Math.abs(ytPlayer.getCurrentTime() - start) < 3, 30000);
+
+    const chunks = [];
+    const mimeType = pickMime();
+    const rec = new MediaRecorder(cap, mimeType ? { mimeType } : undefined);
+    rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+    const stopped = new Promise((r) => { rec.onstop = r; });
+    rec.start(1000);
+    const t0 = performance.now();
+    $('#rec-timer').hidden = false;
+    $('#rec-total').textContent = clock(length);
+
+    await new Promise((resolve) => {
+      track.addEventListener('ended', resolve); // user pressed "Stop sharing"
+      const iv = setInterval(() => {
+        const s = (performance.now() - t0) / 1000;
+        $('#rec-time').textContent = clock(Math.min(s, length));
+        const ended = ytPlayer.getPlayerState() === YT.PlayerState.ENDED;
+        if (s >= length || ytPlayer.getCurrentTime() >= start + length || ended) {
+          clearInterval(iv);
+          resolve();
+        }
+      }, 100);
+    });
+    const seconds = Math.min((performance.now() - t0) / 1000, length);
+    rec.stop();
+    await stopped;
+    ytPlayer.pauseVideo();
+    const blob = new Blob(chunks, { type: rec.mimeType || mimeType || 'video/webm' });
+    setVideo(blob, seconds);
+    if (!hasAudio) ytMessage('No sound was captured, so the story will be written from the pictures only. To include speech, capture again and tick "Also share tab audio".');
+  } catch (e) {
+    ytMessage(e.message);
+  } finally {
+    cap.getTracks().forEach((t) => t.stop());
+    $('#rec-timer').hidden = true;
+    $('#yt-capture').disabled = false;
+  }
+}
+
+$('#yt-capture').addEventListener('click', captureYouTube);
 
 // ---------- options ----------
 const OPTION_IDS = ['style', 'model', 'fps', 'lang'];
@@ -685,7 +909,8 @@ function storyMarkdown() {
 
 $('#go').addEventListener('click', run);
 $('#rewrite').addEventListener('click', rewrite);
-$('#signin').addEventListener('click', signIn);
+$('#signin').addEventListener('click', () => signIn(false));
+$('#signup').addEventListener('click', () => signIn(true));
 $('#signout').addEventListener('click', signOut);
 $('#copy').addEventListener('click', async () => {
   try {

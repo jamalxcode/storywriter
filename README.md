@@ -7,7 +7,7 @@ It is a static site for **GitHub Pages**. There is no server and nothing to pay 
 ## How it works
 
 ```
-Video (camera or upload, ≤ 60 s)
+Video (camera, upload, or a YouTube link + timestamp; ≤ 60 s)
  ├─ Frames: 1 per second, captured in the browser with <canvas>
  ├─ Audio: transcribed in the browser by Whisper (Transformers.js, Web Worker)
  └─ Claude, through OpenRouter, signed in with OAuth (PKCE)
@@ -16,6 +16,7 @@ Video (camera or upload, ≤ 60 s)
 ```
 
 - **Sign-in:** "Sign in with OpenRouter" uses OAuth PKCE, so it needs no server and no secret. Each visitor's usage is billed to **their own** OpenRouter account. No key is ever stored in this repo.
+- **YouTube:** paste a link (a `?t=1m30s` timestamp fills in the start time) and choose a length, which defaults to 60 seconds. A static page can't download YouTube videos, so the clip plays in YouTube's own embedded player while the page records its own tab, cropped to the player. When the browser asks, share **this tab** with **"Also share tab audio"** ticked. Recording happens in real time, and only desktop Chrome and Edge can do it (Firefox records without sound). Videos whose owners block embedding can't be used. Only capture videos you have the right to use.
 - **Privacy:** the video and audio never leave the device. Only the still frames and the transcript go to Claude.
 - **Speech model:** Whisper base (8-bit), about 75 MB, downloaded once from Hugging Face and then cached by the browser. It runs on WebAssembly in a background thread, so the page stays responsive.
 

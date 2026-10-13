@@ -17,7 +17,10 @@
       <span>Scene to Story</span>
     </div>
     <div id="auth" class="auth">
-      <button id="signin" class="btn primary">Sign in with OpenRouter</button>
+      <div id="signedout" class="signedout">
+        <button id="signup" class="btn link">Create account</button>
+        <button id="signin" class="btn primary">Sign in<span class="long"> with OpenRouter</span></button>
+      </div>
       <div id="signedin" class="signedin" hidden>
         <span class="dot" aria-hidden="true"></span>
         <span>Signed in</span>
@@ -36,14 +39,16 @@
       <div class="tabs" role="tablist">
         <button role="tab" class="tab active" data-tab="record" aria-selected="true">Record</button>
         <button role="tab" class="tab" data-tab="upload" aria-selected="false">Upload</button>
+        <button role="tab" class="tab" data-tab="youtube" aria-selected="false">YouTube</button>
       </div>
 
       <div class="stage">
         <video id="preview" playsinline muted></video>
+        <div id="yt-holder" class="yt-holder" hidden></div>
         <div id="placeholder" class="placeholder">
           <p>No video yet</p>
         </div>
-        <div id="rec-timer" class="rec-timer" hidden><span class="rec-dot"></span><span id="rec-time">0:00</span> / 1:00</div>
+        <div id="rec-timer" class="rec-timer" hidden><span class="rec-dot"></span><span id="rec-time">0:00</span> / <span id="rec-total">1:00</span></div>
       </div>
 
       <div class="panel" data-panel="record">
@@ -59,6 +64,26 @@
           <span><strong>Choose a video</strong> or drop it here</span>
           <small>Only the first 60 seconds are used</small>
         </label>
+      </div>
+
+      <div class="panel yt-panel" data-panel="youtube" hidden>
+        <div class="yt-fields">
+          <label class="field grow">
+            <span>YouTube link</span>
+            <input id="yt-url" type="text" inputmode="url" placeholder="https://youtu.be/…?t=1m30s">
+          </label>
+          <label class="field">
+            <span>Start at</span>
+            <input id="yt-start" type="text" placeholder="0:00">
+          </label>
+          <label class="field">
+            <span>Length (sec)</span>
+            <input id="yt-length" type="number" min="1" max="60" step="1" value="60">
+          </label>
+        </div>
+        <button id="yt-capture" class="btn" disabled>● Capture clip</button>
+        <p class="note">When asked, share <strong>this tab</strong> and keep <strong>“Also share tab audio”</strong> ticked. The clip plays and records in real time. Works in desktop Chrome and Edge. Only capture videos you have the right to use.</p>
+        <p id="yt-msg" class="note warn" hidden></p>
       </div>
     </section>
 
