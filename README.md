@@ -12,6 +12,19 @@ It's a static site on GitHub Pages: no server, no database, nothing to pay for h
 
 [![Scene to Story: the start of the page](screenshot.jpg)](https://story.sala.company)
 
+## Using it
+
+The page walks you through four numbered steps:
+
+1. **Sign in to OpenRouter**, or create a free account and add a little credit. Once you're signed in, this step shrinks to one faded line.
+2. **Choose your video:** record with the camera, upload a file, or paste a YouTube link with a start time. The chosen tab's controls appear right under the tabs, above the video.
+3. **Writing Style:** prose with dialogue, poem, screenplay, noir, haiku or fairy tale, plus an optional language and extra direction. The AI models and frame rate are under "More options".
+4. **Write the story:** shows the estimated cost first, then progress (frames, audio, watching, writing), a Cancel button and the actual cost.
+
+The story appears on a parchment scroll. Copy or Download keeps it, and "Rewrite in chosen style" writes it again in another style, paying only for the writing. "What the AI (Claude) saw" (collapsed) shows the setting, text on screen, characters, timeline and dialogue it found.
+
+**Languages:** the story is written in the language spoken or shown in the video, or in the language you type. Right-to-left languages such as Arabic are detected automatically. The scroll switches direction, the text is set in Amiri, and the first paragraph opens with a gold ornament instead of a drop cap, so joined letters are never split.
+
 ## How it works
 
 ```
@@ -34,7 +47,18 @@ Video (camera, upload, or a YouTube link + timestamp; up to 60 s)
 
 ## Look
 
-The page is styled as parchment: aged paper drawn with small SVG noise tiles (no images), IM Fell English for headings, Pinyon Script calligraphy for the title, Cinzel for the step numbers, EB Garamond for the story, and Inter for buttons and inputs so they stay clearly clickable. The finished story appears on a scroll that unrolls once (skipped when the device asks for reduced motion). The fonts add about 100 KB to the first visit.
+The page is styled as parchment:
+
+- **Paper:** aged paper drawn with small SVG noise tiles, with no images and nothing recalculated while scrolling.
+- **Type:** IM Fell English for headings, Pinyon Script calligraphy for the title, Cinzel gold numerals for the steps, EB Garamond for text, Amiri for Arabic, and Inter for buttons and inputs so they stay clearly clickable.
+- **Details:** wax-seal red buttons, a gold ❦ flourish between steps, and a wax-seal tick on finished steps.
+- **The story scroll:** rolled ends, a one-second unrolling animation (skipped when the device asks for reduced motion), and a gold drop cap for left-to-right text or a gold quill ornament for right-to-left text.
+- **Dark mode** becomes "candlelit": dark aged paper with warm ink.
+- **Logo:** a gold quill, inkpot and document on a dark badge (`logo.svg`, also the favicon).
+
+The fonts add about 100 KB to the first visit. Amiri downloads only when Arabic text appears.
+
+The plain design from before the theme is tagged `before-parchment`. To return to it, remove the `parchment.css` `<link>` in `index.html`, or check out that tag.
 
 ## Privacy
 
@@ -83,13 +107,18 @@ npx serve .
 |---|---|
 | `index.html` | Page layout: the four numbered steps (sign in, choose a video, writing style, write), the results and the privacy pop-up |
 | `style.css` | Base layout and styling, with light and dark modes |
-| `parchment.css` | The parchment theme, loaded after `style.css`: paper texture, old-book and calligraphy fonts, wax-seal buttons, step flourishes, and the story scroll with rolled ends, an unrolling animation and an illuminated first letter (right-to-left stories such as Arabic are right-aligned in Amiri and open with a gold quill ornament instead, since joined letters can't be split into a drop cap). Dark mode becomes "candlelit". Remove its `<link>` in `index.html` to go back to the plain look. |
+| `parchment.css` | The parchment theme, loaded after `style.css` (see Look) |
 | `app.js` | Recording, YouTube capture, frame capture, OpenRouter sign-in, AI calls, cost estimate, rendering |
 | `whisper-worker.js` | Speech-to-text in a background thread |
 | `logo.svg` | The logo (a gold quill, inkpot and document), also used as the favicon |
 | `screenshot.jpg` | The screenshot in this README |
+| `og-image.jpg` | The 1200×630 link-preview image (Open Graph and X tags in `index.html`) |
 | `CNAME` | The custom domain, `story.sala.company` |
 | `LICENSE` | MIT licence |
+
+## Status
+
+Tested end to end on 13 October 2026: OpenRouter sign-in, watching and writing with Claude, the cost estimate and actual cost, and an Arabic story. Retries, Cancel, large files, YouTube capture and the unrolling scroll were also tested with simulated AI replies and stand-in streams.
 
 ## Limits
 
