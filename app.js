@@ -1060,6 +1060,16 @@ function showError(msg) {
 function hideError() { $('#error').hidden = true; }
 
 // ---------- main pipeline ----------
+// Plays the scroll's unrolling animation, then lets it grow freely with the story.
+function unroll(el) {
+  el.classList.remove('unroll');
+  void el.offsetWidth; // restart the animation
+  el.classList.add('unroll');
+  const done = () => el.classList.remove('unroll');
+  el.addEventListener('animationend', done, { once: true });
+  setTimeout(done, 2500); // in case the browser pauses animations (e.g. a background tab)
+}
+
 // Shows "message… 12s" so long AI calls visibly keep moving.
 function ticking(message) {
   const t0 = performance.now();
@@ -1143,6 +1153,7 @@ async function run() {
     step('write', 'active');
     detail('The AI is writing…');
     $('#results').hidden = false;
+    unroll($('.story'));
     $('#results').scrollIntoView({ behavior: 'smooth', block: 'start' });
     await write(signal);
     step('write', 'done');

@@ -32,6 +32,10 @@ Video (camera, upload, or a YouTube link + timestamp; up to 60 s)
 - **Large files:** for uploads over 150 MB, the sound isn't decoded in one go. The first minute is played silently and recorded instead, in real time.
 - **Speech model:** Whisper base (8-bit), about 80 MB, downloaded once from Hugging Face and then cached by the browser.
 
+## Look
+
+The page is styled as parchment: aged paper drawn with small SVG noise tiles (no images), IM Fell English for headings, Pinyon Script calligraphy for the title, Cinzel for the step numbers, EB Garamond for the story, and Inter for buttons and inputs so they stay clearly clickable. The finished story appears on a scroll that unrolls once (skipped when the device asks for reduced motion). The fonts add about 100 KB to the first visit.
+
 ## Privacy
 
 A **🔒 Privacy** button right after "Your video never leaves your device." opens a pop-up that tells visitors this in plain language (the step 4 "Details" link and the footer link open it too, as does `#privacy` in the address).
@@ -78,7 +82,8 @@ npx serve .
 | File | What it is |
 |---|---|
 | `index.html` | Page layout: the four numbered steps (sign in, choose a video, writing style, write), the results and the privacy pop-up |
-| `style.css` | Styling, with light and dark modes |
+| `style.css` | Base layout and styling, with light and dark modes |
+| `parchment.css` | The parchment theme, loaded after `style.css`: paper texture, old-book and calligraphy fonts, wax-seal buttons, step flourishes, and the story scroll with rolled ends, an unrolling animation and an illuminated first letter. Dark mode becomes "candlelit". Remove its `<link>` in `index.html` to go back to the plain look. |
 | `app.js` | Recording, YouTube capture, frame capture, OpenRouter sign-in, AI calls, cost estimate, rendering |
 | `whisper-worker.js` | Speech-to-text in a background thread |
 | `logo.svg` | The logo (a gold quill, inkpot and document), also used as the favicon |
