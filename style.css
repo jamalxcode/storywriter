@@ -261,3 +261,6 @@ dialog.privacy::backdrop { background: rgba(20, 14, 8, .55); backdrop-filter: bl
 .privacy .close:hover { background: var(--surface-2); color: var(--text); }
 .privacy h2 { padding-right: 36px; }
 .privacy .btn.primary { margin-top: 16px; }
+
+/* keep "Your video never leaves your device." and its Privacy button on one line */
+@media (min-width: 561px) { .keep { white-space: nowrap; } }

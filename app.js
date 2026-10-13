@@ -96,6 +96,12 @@ function renderAuth() {
 }
 
 // ---------- tabs ----------
+// Capturing a YouTube clip needs tab capture, which phones and tablets don't offer.
+if (!navigator.mediaDevices?.getDisplayMedia) {
+  document.querySelector('.tab[data-tab="youtube"]').hidden = true;
+  $('#step-video .step-lead').textContent = 'Up to one minute. Record it or upload a file. (YouTube clips need a desktop browser.)';
+}
+
 document.querySelectorAll('.tab').forEach((tab) => {
   tab.addEventListener('click', () => {
     document.querySelectorAll('.tab').forEach((t) => {
@@ -308,15 +314,64 @@ function updateEstimate() {
 // ---------- YouTube ----------
 // A static page can't download YouTube videos, so we play the clip in the official
 // embedded player and record this browser tab (cropped to the player) while it plays.
+//
+// The player is driven only through postMessage, the same protocol YouTube's own
+// iframe_api script uses. That keeps every line of YouTube code inside its own
+// cross-origin frame, where it can't read this page's storage (the OpenRouter key).
 const ytHolder = $('#yt-holder');
+const YT_ORIGIN = 'https://www.youtube.com';
+const YT_PLAYING = 1, YT_ENDED = 0;
 let ytPlayer = null;
-let ytApi = null;
-let ytLoaded = null; // { id }
+
+function createYouTubePlayer(id, start, onError) {
+  const iframe = document.createElement('iframe');
+  const params = new URLSearchParams({
+    enablejsapi: '1', playsinline: '1', rel: '0', start: String(Math.floor(start)), origin: location.origin,
+  });
+  iframe.src = `${YT_ORIGIN}/embed/${id}?${params}`;
+  iframe.title = 'YouTube video player';
+  iframe.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+  iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+  ytHolder.replaceChildren(iframe);
+
+  const player = {
+    id, ready: false, state: -1, time: start,
+    send(func, args = []) {
+      iframe.contentWindow?.postMessage(JSON.stringify({ event: 'command', func, args, id: 1, channel: 'widget' }), YT_ORIGIN);
+    },
+    play() { this.send('playVideo'); },
+    pause() { this.send('pauseVideo'); },
+    seekTo(t) { this.time = t; this.send('seekTo', [t, true]); },
+    destroy() { window.removeEventListener('message', onMessage); clearInterval(ping); iframe.remove(); },
+  };
+
+  function onMessage(e) {
+    if (e.origin !== YT_ORIGIN || e.source !== iframe.contentWindow) return;
+    let d;
+    try { d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch { return; }
+    if (d.event === 'onReady' || d.event === 'initialDelivery') player.ready = true;
+    if (d.event === 'infoDelivery' && d.info) {
+      player.ready = true;
+      if (typeof d.info.currentTime === 'number') player.time = d.info.currentTime;
+      if (typeof d.info.playerState === 'number') player.state = d.info.playerState;
+    }
+    if (d.event === 'onStateChange' && typeof d.info === 'number') player.state = d.info;
+    if (d.event === 'onError') onError(d.info);
+  }
+  window.addEventListener('message', onMessage);
+
+  // Until the player answers, keep telling it we're listening for its events.
+  const listen = () => iframe.contentWindow?.postMessage(JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }), YT_ORIGIN);
+  const ping = setInterval(() => (player.ready ? clearInterval(ping) : listen()), 250);
+  setTimeout(() => clearInterval(ping), 15000);
+  iframe.addEventListener('load', listen);
+  return player;
+}
 
 function showYouTubeStage(on) {
   ytHolder.hidden = !on;
   preview.hidden = on;
-  if (!on && ytPlayer?.pauseVideo) ytPlayer.pauseVideo();
+  if (!on) ytPlayer?.pause();
   $('#placeholder').hidden = on || !!state.video || !!stream;
 }
 
@@ -343,20 +398,6 @@ function parseYouTube(input) {
   return { id, start: parseTime(url.searchParams.get('t') || url.searchParams.get('start')) };
 }
 
-function loadYouTubeApi() {
-  if (!ytApi) {
-    ytApi = new Promise((resolve, reject) => {
-      if (window.YT?.Player) { resolve(); return; }
-      window.onYouTubeIframeAPIReady = resolve;
-      const s = document.createElement('script');
-      s.src = 'https://www.youtube.com/iframe_api';
-      s.onerror = () => { ytApi = null; reject(new Error('Could not load the YouTube player.')); };
-      document.head.append(s);
-    });
-  }
-  return ytApi;
-}
-
 function ytMessage(text) {
   const m = $('#yt-msg');
   m.textContent = text || '';
@@ -369,32 +410,21 @@ function ytSettings() {
   return { start, length: Math.min(Math.max(length, 1), MAX_SECONDS) };
 }
 
-async function loadYouTube(id, start) {
-  await loadYouTubeApi();
+function loadYouTube(id, start) {
   stopCamera();
   clearVideo();
   showYouTubeStage(true);
-  if (ytPlayer && ytLoaded?.id === id) {
-    ytPlayer.cueVideoById({ videoId: id, startSeconds: start });
+  if (ytPlayer?.id === id) {
+    ytPlayer.seekTo(start);
+    ytPlayer.pause();
     return;
   }
-  if (ytPlayer) ytPlayer.destroy();
-  ytHolder.innerHTML = '<div id="yt-player"></div>';
-  ytLoaded = { id };
-  await new Promise((resolve) => {
-    ytPlayer = new YT.Player('yt-player', {
-      videoId: id,
-      playerVars: { start: Math.floor(start), playsinline: 1, rel: 0 },
-      events: {
-        onReady: resolve,
-        onError: (e) => {
-          ytMessage([101, 150].includes(e.data)
-            ? "This video's owner doesn't allow it to be played on other sites."
-            : 'YouTube could not play this video.');
-          $('#yt-capture').disabled = true;
-        },
-      },
-    });
+  ytPlayer?.destroy();
+  ytPlayer = createYouTubePlayer(id, start, (code) => {
+    ytMessage([101, 150].includes(code)
+      ? "This video's owner doesn't allow it to be played on other sites."
+      : 'YouTube could not play this video.');
+    $('#yt-capture').disabled = true;
   });
 }
 
@@ -411,11 +441,7 @@ async function onYouTubeInput() {
     }
     if (parsed.start != null && !$('#yt-start').dataset.touched) $('#yt-start').value = clock(parsed.start);
     if (Number.isNaN(parseTime($('#yt-start').value))) { ytMessage('Start time should look like 1:30 or 90.'); return; }
-    try {
-      await loadYouTube(parsed.id, ytSettings().start);
-    } catch (e) {
-      ytMessage(e.message);
-    }
+    loadYouTube(parsed.id, ytSettings().start);
   }, 400);
 }
 
@@ -437,7 +463,7 @@ async function captureYouTube() {
     ytMessage('Capturing YouTube needs a desktop browser. Chrome or Edge work best.');
     return;
   }
-  if (!ytPlayer?.seekTo) return;
+  if (!ytPlayer) return;
   const { start, length } = ytSettings();
   ytMessage('');
 
@@ -468,10 +494,9 @@ async function captureYouTube() {
 
   $('#yt-capture').disabled = true;
   try {
-    ytPlayer.seekTo(start, true);
-    ytPlayer.playVideo();
-    await waitFor(() => ytPlayer.getPlayerState() === YT.PlayerState.PLAYING
-      && Math.abs(ytPlayer.getCurrentTime() - start) < 3, 30000);
+    ytPlayer.seekTo(start);
+    ytPlayer.play();
+    await waitFor(() => ytPlayer.state === YT_PLAYING && Math.abs(ytPlayer.time - start) < 3, 30000);
 
     const chunks = [];
     const mimeType = pickMime();
@@ -488,8 +513,8 @@ async function captureYouTube() {
       const iv = setInterval(() => {
         const s = (performance.now() - t0) / 1000;
         $('#rec-time').textContent = clock(Math.min(s, length));
-        const ended = ytPlayer.getPlayerState() === YT.PlayerState.ENDED;
-        if (s >= length || ytPlayer.getCurrentTime() >= start + length || ended) {
+        const ended = ytPlayer.state === YT_ENDED;
+        if (s >= length || ytPlayer.time >= start + length || ended) {
           clearInterval(iv);
           resolve();
         }
@@ -498,7 +523,7 @@ async function captureYouTube() {
     const seconds = Math.min((performance.now() - t0) / 1000, length);
     rec.stop();
     await stopped;
-    ytPlayer.pauseVideo();
+    ytPlayer.pause();
     const blob = new Blob(chunks, { type: rec.mimeType || mimeType || 'video/webm' });
     setVideo(blob, seconds);
     if (!hasAudio) ytMessage('No sound was captured, so the story will be written from the pictures only. To include speech, capture again and tick "Also share tab audio".');

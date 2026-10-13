@@ -26,7 +26,7 @@ Video (camera, upload, or a YouTube link + timestamp; up to 60 s)
 
 - **Sign-in:** "Sign in with OpenRouter" uses OAuth PKCE, so it needs no server or secret. Returning users go through OpenRouter's sign-in page, and new users get a separate "Create account" link. The key is kept in the visitor's browser until they sign out, and never in this repo.
 - **Two models:** a cheaper model watches the frames, which is most of the input, and the best model writes. Both can be changed on the page.
-- **YouTube:** paste a link (a `?t=1m30s` timestamp fills in the start time) and choose a length, which defaults to 60 seconds. A static page can't download from YouTube, so the clip plays in YouTube's own embedded player while the page records its own tab, cropped to the player. When the browser asks, share **this tab** with **"Also share tab audio"** ticked. It records in real time and needs desktop Chrome or Edge (Firefox records without sound). Videos whose owners block embedding can't be used. Only capture videos you have the right to use.
+- **YouTube:** paste a link (a `?t=1m30s` timestamp fills in the start time) and choose a length, which defaults to 60 seconds. A static page can't download from YouTube, so the clip plays in YouTube's own embedded player while the page records its own tab, cropped to the player. When the browser asks, share **this tab** with **"Also share tab audio"** ticked. It records in real time and needs desktop Chrome or Edge (Firefox records without sound). Videos whose owners block embedding can't be used. Only capture videos you have the right to use. The player is controlled only by messages to YouTube's own frame (no YouTube script runs in the page), so YouTube code can't read the saved sign-in. On phones and tablets, which can't capture a tab, the YouTube tab is hidden.
 - **Reliability:** rate limits, server errors and dropped connections are retried automatically (up to 3 attempts, honouring `Retry-After`), but never after part of a story has appeared. The analysis is asked for again once if it still comes back unreadable. A **Cancel** button stops any step.
 - **Cost:** an estimate before you start, from OpenRouter's live prices, and the actual cost OpenRouter reports afterwards.
 - **Large files:** for uploads over 150 MB, the sound isn't decoded in one go. The first minute is played silently and recorded instead, in real time.
@@ -89,6 +89,7 @@ npx serve .
 | `logo.svg` | The logo (a gold quill, inkpot and document), also used as the favicon |
 | `screenshot.jpg` | The screenshot in this README |
 | `CNAME` | The custom domain, `story.sala.company` |
+| `LICENSE` | MIT licence |
 
 ## Limits
 
@@ -97,3 +98,7 @@ npx serve .
 - Very fast action between frames can be missed. Choose "2 per second" for those clips.
 - The browser must be able to play the video format. MP4 and WebM work everywhere; some phone HEVC files play only in Safari.
 - Capturing from YouTube doesn't work on phones.
+
+## Licence
+
+MIT, © 2026 SALA CO, [sala.company](https://www.sala.company). See [LICENSE](LICENSE).
