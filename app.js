@@ -16,6 +16,9 @@ const state = {
   analysis: null,
   story: '',
   busy: false,
+  abort: null,        // AbortController for the run in progress
+  cost: 0,            // actual $ spent in the current run, as reported by OpenRouter
+  prices: {},         // model id → [$ per input token, $ per output token]
 };
 
 // ---------- storage (may be unavailable in private modes) ----------
@@ -86,6 +89,7 @@ function signOut() {
 
 function renderAuth() {
   $('#signedout').hidden = !!state.key;
+  $('#needs').hidden = !!state.key;
   $('#signedin').hidden = !state.key;
   updateGo();
 }
@@ -211,6 +215,7 @@ function clearVideo() {
   state.video = null;
   preview.removeAttribute('src');
   updateGo();
+  updateEstimate();
 }
 
 function setVideo(blob, knownDuration) {
@@ -225,6 +230,78 @@ function setVideo(blob, knownDuration) {
   $('#placeholder').hidden = true;
   hideError();
   updateGo();
+  probeVideo(state.video);
+}
+
+// Reads the length and picture size up front so the cost estimate can be shown.
+async function probeVideo(video) {
+  try {
+    const v = await loadVideoElement(video.url);
+    video.meta = {
+      duration: Number.isFinite(v.duration) && v.duration > 0 ? v.duration : video.knownDuration,
+      w: v.videoWidth,
+      h: v.videoHeight,
+    };
+    v.removeAttribute('src');
+    v.load();
+  } catch {
+    video.meta = null;
+  }
+  if (state.video === video) updateEstimate();
+}
+
+// ---------- cost estimate ----------
+// Used until live prices arrive from OpenRouter ($ per token: input, output).
+const FALLBACK_PRICES = {
+  'anthropic/claude-fable-5.1': [10e-6, 50e-6],
+  'anthropic/claude-opus-5.5': [4e-6, 20e-6],
+  'anthropic/claude-sonnet-5.5': [2e-6, 10e-6],
+  'anthropic/claude-haiku-5.5': [0.1e-6, 0.5e-6],
+};
+// Rough token budgets per step, including the AI's hidden reasoning.
+const WATCH_EXTRA_IN = 1500, WATCH_OUT = 3500, WRITE_IN = 3000, WRITE_OUT = 3000;
+
+async function loadPrices() {
+  try {
+    const res = await fetch(`${OPENROUTER}/api/v1/models`);
+    const { data } = await res.json();
+    for (const m of data) {
+      if (m.id.startsWith('anthropic/')) state.prices[m.id] = [Number(m.pricing.prompt), Number(m.pricing.completion)];
+    }
+    updateEstimate();
+  } catch { /* keep the fallback prices */ }
+}
+
+function price(model) {
+  return state.prices[model] || FALLBACK_PRICES[model] || [0, 0];
+}
+
+function estimateCost() {
+  const meta = state.video?.meta;
+  if (!meta?.w || !meta?.h) return null;
+  const duration = Math.min(meta.duration || MAX_SECONDS, MAX_SECONDS);
+  const frames = frameTimes(duration, Number($('#fps').value)).length;
+  const scale = Math.min(1, FRAME_MAX_SIDE / Math.max(meta.w, meta.h));
+  const tokensPerFrame = Math.ceil((meta.w * scale) * (meta.h * scale) / 750) + 12; // image + timestamp label
+  const [wi, wo] = price($('#watch').value);
+  const [ri, ro] = price($('#model').value);
+  return {
+    frames,
+    watch: (frames * tokensPerFrame + WATCH_EXTRA_IN) * wi + WATCH_OUT * wo,
+    write: WRITE_IN * ri + WRITE_OUT * ro,
+  };
+}
+
+function money(x) {
+  return x < 0.01 ? 'under $0.01' : `$${x.toFixed(2)}`;
+}
+
+function updateEstimate() {
+  const e = estimateCost();
+  const el = $('#estimate');
+  el.hidden = !e;
+  if (!e) return;
+  el.textContent = `Estimated cost: about ${money(e.watch + e.write)} — watching ${e.frames} frames ${money(e.watch)}, writing ${money(e.write)}. A rewrite costs only the writing.`;
 }
 
 // ---------- YouTube ----------
@@ -436,12 +513,12 @@ async function captureYouTube() {
 $('#yt-capture').addEventListener('click', captureYouTube);
 
 // ---------- options ----------
-const OPTION_IDS = ['style', 'model', 'fps', 'lang'];
+const OPTION_IDS = ['style', 'watch', 'model', 'fps', 'lang'];
 OPTION_IDS.forEach((id) => {
   const el = $(`#${id}`);
   const saved = store.get(`opt_${id}`);
   if (saved !== null && (el.tagName !== 'SELECT' || [...el.options].some((o) => o.value === saved))) el.value = saved;
-  el.addEventListener('change', () => store.set(`opt_${id}`, el.value));
+  el.addEventListener('change', () => { store.set(`opt_${id}`, el.value); updateEstimate(); });
 });
 
 function updateGo() {
@@ -484,16 +561,20 @@ async function loadVideoElement(url) {
   return v;
 }
 
-async function extractFrames(url, knownDuration, fps, onProgress) {
-  const v = await loadVideoElement(url);
-  let duration = Number.isFinite(v.duration) && v.duration > 0 ? v.duration : knownDuration;
-  if (!duration) throw new Error('Could not determine the video length.');
-  duration = Math.min(duration, MAX_SECONDS);
-
+function frameTimes(duration, fps) {
   let step = 1 / fps;
   if (duration / step > MAX_FRAMES) step = duration / MAX_FRAMES;
   const times = [];
   for (let t = Math.min(0.1, duration / 2); t < duration; t += step) times.push(t);
+  return times;
+}
+
+async function extractFrames(url, knownDuration, fps, onProgress, signal) {
+  const v = await loadVideoElement(url);
+  let duration = Number.isFinite(v.duration) && v.duration > 0 ? v.duration : knownDuration;
+  if (!duration) throw new Error('Could not determine the video length.');
+  duration = Math.min(duration, MAX_SECONDS);
+  const times = frameTimes(duration, fps);
 
   const w = v.videoWidth, h = v.videoHeight;
   if (!w || !h) throw new Error('This video has no picture track.');
@@ -505,6 +586,7 @@ async function extractFrames(url, knownDuration, fps, onProgress) {
 
   const frames = [];
   for (let i = 0; i < times.length; i++) {
+    if (signal?.aborted) throw abortError();
     v.currentTime = times[i];
     await once(v, 'seeked', 5000).catch(() => {});
     ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
@@ -516,21 +598,36 @@ async function extractFrames(url, knownDuration, fps, onProgress) {
   return { frames, duration };
 }
 
+// Files bigger than this are not decoded in one go (the browser would have to hold the
+// whole soundtrack in memory); instead the first minute is played silently and recorded.
+const LARGE_FILE_BYTES = 150 * 1024 * 1024;
+const SAMPLE_RATE = 16000;
+
+function silentOrNull(samples) {
+  let sum = 0;
+  for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i];
+  const rms = Math.sqrt(sum / Math.max(1, samples.length));
+  return rms < 0.003 ? null : samples; // near-silence: skip (Whisper invents words on silence)
+}
+
+async function readAudio(video, duration, signal, onProgress) {
+  return video.blob.size > LARGE_FILE_BYTES
+    ? listenToAudio(video.url, duration, signal, onProgress)
+    : decodeAudio(video.blob);
+}
+
 async function decodeAudio(blob) {
   const AC = window.AudioContext || window.webkitAudioContext;
-  const ctx = new AC({ sampleRate: 16000 });
+  const ctx = new AC({ sampleRate: SAMPLE_RATE });
   try {
     const buf = await ctx.decodeAudioData(await blob.arrayBuffer());
-    const len = Math.min(buf.length, 16000 * MAX_SECONDS);
+    const len = Math.min(buf.length, SAMPLE_RATE * MAX_SECONDS);
     const mono = new Float32Array(len);
     for (let c = 0; c < buf.numberOfChannels; c++) {
       const data = buf.getChannelData(c);
       for (let i = 0; i < len; i++) mono[i] += data[i] / buf.numberOfChannels;
     }
-    let sum = 0;
-    for (let i = 0; i < len; i++) sum += mono[i] * mono[i];
-    const rms = Math.sqrt(sum / Math.max(1, len));
-    return rms < 0.003 ? null : mono; // near-silence: skip (Whisper invents words on silence)
+    return silentOrNull(mono);
   } catch {
     return null; // no audio track, or a format this browser can't decode
   } finally {
@@ -538,11 +635,64 @@ async function decodeAudio(blob) {
   }
 }
 
+async function listenToAudio(url, duration, signal, onProgress) {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  const ctx = new AC({ sampleRate: SAMPLE_RATE });
+  const v = document.createElement('video');
+  v.playsInline = true;
+  v.preload = 'auto';
+  v.src = url;
+  try {
+    await once(v, 'loadedmetadata');
+    const target = Math.round(Math.min(duration, MAX_SECONDS) * SAMPLE_RATE);
+    const out = new Float32Array(target);
+    let n = 0;
+    const source = ctx.createMediaElementSource(v);
+    const tap = ctx.createScriptProcessor(4096, 1, 1);
+    const mute = ctx.createGain();
+    mute.gain.value = 0; // record it without playing it out loud
+    tap.onaudioprocess = (e) => {
+      const data = e.inputBuffer.getChannelData(0);
+      const k = Math.min(data.length, target - n);
+      if (k > 0) { out.set(data.subarray(0, k), n); n += k; }
+    };
+    source.connect(tap);
+    tap.connect(mute);
+    mute.connect(ctx.destination);
+    await ctx.resume();
+    await v.play();
+    await new Promise((resolve, reject) => {
+      const iv = setInterval(() => {
+        if (signal?.aborted) { clearInterval(iv); reject(abortError()); return; }
+        onProgress(`Large file: listening to the soundtrack in real time (${clock(n / SAMPLE_RATE)} of ${clock(target / SAMPLE_RATE)})`);
+        if (n >= target || v.ended) { clearInterval(iv); resolve(); }
+      }, 250);
+    });
+    return silentOrNull(out.subarray(0, n));
+  } catch (e) {
+    if (e.name === 'AbortError') throw e;
+    return null;
+  } finally {
+    v.pause();
+    v.removeAttribute('src');
+    v.load();
+    ctx.close();
+  }
+}
+
 // ---------- Whisper (Web Worker) ----------
 let worker = null;
-function transcribe(audio, onStatus) {
+function transcribe(audio, onStatus, signal) {
   if (!worker) worker = new Worker(new URL('./whisper-worker.js', import.meta.url), { type: 'module' });
-  return new Promise((resolve, reject) => {
+  return new Promise((_resolve, _reject) => {
+    const onAbort = () => {
+      worker.terminate(); // the only way to stop Whisper mid-run; a fresh worker is made next time
+      worker = null;
+      _reject(abortError());
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
+    const resolve = (v) => { signal?.removeEventListener('abort', onAbort); _resolve(v); };
+    const reject = (e) => { signal?.removeEventListener('abort', onAbort); _reject(e); };
     const files = {};
     worker.onmessage = ({ data }) => {
       if (data.type === 'download') {
@@ -565,9 +715,48 @@ function transcribe(audio, onStatus) {
 }
 
 // ---------- AI (Claude) via OpenRouter ----------
-async function callAI({ messages, maxTokens, onDelta }) {
+class RetryableError extends Error {
+  constructor(message, retryAfterMs) { super(message); this.retryAfterMs = retryAfterMs; }
+}
+
+const RETRY_STATUS = new Set([408, 429, 500, 502, 503, 504, 529]);
+const MAX_ATTEMPTS = 3;
+
+function sleep(ms, signal) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(resolve, ms);
+    signal?.addEventListener('abort', () => { clearTimeout(t); reject(abortError()); }, { once: true });
+  });
+}
+
+function abortError() {
+  return new DOMException('Cancelled', 'AbortError');
+}
+
+// Sends one chat request. Retries on rate limits, server errors and dropped connections,
+// but never after part of a streamed answer has already been shown.
+async function callAI({ model, messages, maxTokens, onDelta, responseFormat, signal }) {
+  for (let attempt = 1; ; attempt++) {
+    let received = false;
+    try {
+      return await requestAI({ model, messages, maxTokens, responseFormat, signal,
+        onDelta: onDelta && ((text) => { received = true; onDelta(text); }) });
+    } catch (e) {
+      const retryable = e instanceof RetryableError || (e instanceof TypeError && !signal?.aborted);
+      if (!retryable || received || attempt >= MAX_ATTEMPTS) {
+        throw e instanceof TypeError ? new Error('Could not reach OpenRouter. Check your connection and try again.') : e;
+      }
+      const wait = e.retryAfterMs ?? 2000 * 2 ** (attempt - 1);
+      detail(`The AI service is busy; trying again in ${Math.ceil(wait / 1000)}s…`);
+      await sleep(wait, signal);
+    }
+  }
+}
+
+async function requestAI({ model, messages, maxTokens, onDelta, responseFormat, signal }) {
   const res = await fetch(`${OPENROUTER}/api/v1/chat/completions`, {
     method: 'POST',
+    signal,
     headers: {
       Authorization: `Bearer ${state.key}`,
       'Content-Type': 'application/json',
@@ -575,10 +764,12 @@ async function callAI({ messages, maxTokens, onDelta }) {
       'X-Title': APP_TITLE,
     },
     body: JSON.stringify({
-      model: $('#model').value,
+      model,
       messages,
       max_tokens: maxTokens,
       stream: !!onDelta,
+      usage: { include: true },
+      ...(responseFormat && { response_format: responseFormat, provider: { require_parameters: true } }),
     }),
   });
 
@@ -587,12 +778,17 @@ async function callAI({ messages, maxTokens, onDelta }) {
     try { const j = await res.json(); msg = j.error?.message || msg; } catch {}
     if (res.status === 401) { signOut(); throw new Error('Your OpenRouter session expired. Please sign in again.'); }
     if (res.status === 402) throw new Error('Your OpenRouter account is out of credit. Add credit at openrouter.ai/settings/credits.');
+    if (RETRY_STATUS.has(res.status)) {
+      const after = Number(res.headers.get('retry-after'));
+      throw new RetryableError(`AI request failed: ${msg}`, after > 0 ? Math.min(after, 30) * 1000 : undefined);
+    }
     throw new Error(`AI request failed: ${msg}`);
   }
 
   if (!onDelta) {
     const j = await res.json();
-    if (j.error) throw new Error(j.error.message || 'The AI returned an error');
+    if (j.error) throw new RetryableError(j.error.message || 'The AI returned an error');
+    addCost(j.usage);
     return j.choices?.[0]?.message?.content || '';
   }
 
@@ -613,7 +809,8 @@ async function callAI({ messages, maxTokens, onDelta }) {
       if (payload === '[DONE]') return full;
       let j;
       try { j = JSON.parse(payload); } catch { continue; }
-      if (j.error) throw new Error(j.error.message || 'The AI returned an error');
+      if (j.error) throw new RetryableError(j.error.message || 'The AI returned an error');
+      if (j.usage) addCost(j.usage);
       const delta = j.choices?.[0]?.delta?.content;
       if (delta) { full += delta; onDelta(full); }
     }
@@ -621,21 +818,21 @@ async function callAI({ messages, maxTokens, onDelta }) {
   return full;
 }
 
+function addCost(usage) {
+  if (typeof usage?.cost === 'number') state.cost += usage.cost;
+}
+
 const ANALYZE_SYSTEM = `You are a meticulous observer of video. You receive still frames sampled from a short video, each labelled with its timestamp, plus an automatic speech transcript that may contain mistakes or be empty.
 
-Return ONLY a JSON object with this shape:
-{
-  "title": "a short evocative title for the moment",
-  "setting": "where and when this seems to take place; light, weather, atmosphere",
-  "mood": "the emotional tone in a few words",
-  "on_screen_text": ["every piece of legible text, transcribed exactly: signs, captions, labels, screens"],
-  "characters": [
-    { "label": "a short visual handle, e.g. 'the man in the grey hoodie'", "description": "appearance, clothing, apparent age range, posture, expressions, what they do" }
-  ],
-  "timeline": [ { "t": 0, "event": "what happens, in one sentence" } ],
-  "dialogue": [ { "t": 0, "speaker": "a character label, 'off-screen voice', or 'unclear'", "line": "the words spoken" } ],
-  "notes": "anything else notable: animals, objects, camera movement, sounds implied by the transcript"
-}
+Return a JSON object with these fields:
+- title: a short evocative title for the moment
+- setting: where and when this seems to take place; light, weather, atmosphere
+- mood: the emotional tone in a few words
+- on_screen_text: every piece of legible text, transcribed exactly (signs, captions, labels, screens)
+- characters: for each person or animal, a label (a short visual handle, e.g. "the man in the grey hoodie") and a description (appearance, clothing, apparent age range, posture, expressions, what they do)
+- timeline: what happens, as { t: seconds, event: one sentence }
+- dialogue: each spoken line as { t: seconds, speaker: a character label, "off-screen voice" or "unclear", line: the words spoken }
+- notes: anything else notable (objects, camera movement, sounds implied by the transcript)
 
 Rules:
 - Describe people only by what is visible. Never identify or guess who a real person is. Use a name only if it is visibly written or clearly spoken in the video.
@@ -661,18 +858,47 @@ function parseJson(text) {
   return JSON.parse(cleaned.slice(start, end + 1));
 }
 
-async function analyze(frames, duration, transcript) {
+const str = { type: 'string' };
+const obj = (properties) => ({ type: 'object', properties, required: Object.keys(properties), additionalProperties: false });
+const ANALYSIS_FORMAT = {
+  type: 'json_schema',
+  json_schema: {
+    name: 'video_analysis',
+    strict: true,
+    schema: obj({
+      title: str,
+      setting: str,
+      mood: str,
+      on_screen_text: { type: 'array', items: str },
+      characters: { type: 'array', items: obj({ label: str, description: str }) },
+      timeline: { type: 'array', items: obj({ t: { type: 'number' }, event: str }) },
+      dialogue: { type: 'array', items: obj({ t: { type: 'number' }, speaker: str, line: str }) },
+      notes: str,
+    }),
+  },
+};
+
+async function analyze(frames, duration, transcript, signal) {
   const content = [{ type: 'text', text: `Video length: ${duration.toFixed(1)} seconds. ${frames.length} frames follow, in order.` }];
   for (const f of frames) {
     content.push({ type: 'text', text: `[t=${f.t.toFixed(1)}s]` });
     content.push({ type: 'image_url', image_url: { url: f.dataUrl } });
   }
   content.push({ type: 'text', text: `Speech transcript (automatic, may contain errors):\n${transcriptText(transcript)}` });
-  const text = await callAI({
+  const request = {
+    model: $('#watch').value,
     messages: [{ role: 'system', content: ANALYZE_SYSTEM }, { role: 'user', content }],
     maxTokens: 16000,
-  });
-  return parseJson(text);
+    responseFormat: ANALYSIS_FORMAT,
+    signal,
+  };
+  try {
+    return parseJson(await callAI(request));
+  } catch (e) {
+    if (!(e instanceof SyntaxError) && !/readable analysis/.test(e.message)) throw e;
+    detail('The AI\'s notes came back garbled; asking again…');
+    return parseJson(await callAI(request));
+  }
 }
 
 const STYLES = {
@@ -702,16 +928,18 @@ Rules:
   return [{ role: 'system', content: system }, { role: 'user', content: user }];
 }
 
-async function write() {
+async function write(signal) {
   const style = $('#style').value;
   const body = $('#story');
   body.className = `story-body ${style === 'poem' || style === 'haiku' ? 'verse' : ''} ${style === 'screenplay' ? 'screenplay' : ''}`;
   body.innerHTML = '<p class="cursor"></p>';
   $('#story-title').textContent = state.analysis?.title || 'The story';
   state.story = await callAI({
+    model: $('#model').value,
     messages: writeMessages(state.analysis, state.transcript),
     maxTokens: 16000,
     onDelta: (text) => renderStory(text, true),
+    signal,
   });
   renderStory(state.story, false);
 }
@@ -830,31 +1058,71 @@ function showError(msg) {
 function hideError() { $('#error').hidden = true; }
 
 // ---------- main pipeline ----------
-async function run() {
-  if (state.busy) return;
+// Shows "message… 12s" so long AI calls visibly keep moving.
+function ticking(message) {
+  const t0 = performance.now();
+  detail(message);
+  const iv = setInterval(() => {
+    const el = $('#progress-detail');
+    if (!el.textContent.startsWith(message)) return; // a retry notice is showing
+    el.textContent = `${message} ${Math.round((performance.now() - t0) / 1000)}s`;
+  }, 1000);
+  return () => clearInterval(iv);
+}
+
+function begin() {
   state.busy = true;
+  state.cost = 0;
+  state.abort = new AbortController();
+  $('#cost').hidden = true;
+  $('#cancel').hidden = false;
   updateGo();
   hideError();
   $('#progress').hidden = false;
+  return state.abort.signal;
+}
+
+function finish(current, error) {
+  if (error) {
+    step(current, null);
+    if (error.name === 'AbortError') detail('Cancelled.');
+    else { showError(error.message || String(error)); detail(''); }
+  } else {
+    detail('');
+  }
+  if (state.cost > 0) {
+    $('#cost').textContent = `This cost $${state.cost.toFixed(3)}, charged to your OpenRouter account.`;
+    $('#cost').hidden = false;
+  }
+  $('#cancel').hidden = true;
+  state.abort = null;
+  state.busy = false;
+  updateGo();
+}
+
+async function run() {
+  if (state.busy) return;
+  const signal = begin();
   ['frames', 'audio', 'analyze', 'write'].forEach((s) => step(s, null));
   $('#results').hidden = true;
   $('.analysis').open = false;
 
   let current = 'frames';
+  let stopTicking = () => {};
   try {
     step('frames', 'active');
     const fps = Number($('#fps').value);
     const { frames, duration } = await extractFrames(state.video.url, state.video.knownDuration, fps,
-      (i, n) => detail(`Frame ${i} of ${n}`));
+      (i, n) => detail(`Frame ${i} of ${n}`), signal);
     state.frames = frames;
     step('frames', 'done');
 
     current = 'audio';
     step('audio', 'active');
     detail('Reading the soundtrack…');
-    const audio = await decodeAudio(state.video.blob);
+    const audio = await readAudio(state.video, duration, signal, detail);
     if (audio) {
-      state.transcript = await transcribe(audio, detail);
+      state.transcript = await transcribe(audio, detail, signal);
       step('audio', 'done');
     } else {
       state.transcript = { text: '', chunks: [] };
@@ -863,8 +1131,9 @@ async function run() {
 
     current = 'analyze';
     step('analyze', 'active');
-    detail(`The AI is studying ${frames.length} frames…`);
-    state.analysis = await analyze(frames, duration, state.transcript);
+    stopTicking = ticking(`The AI is studying ${frames.length} frames…`);
+    state.analysis = await analyze(frames, duration, state.transcript, signal);
+    stopTicking();
     renderAnalysis(state.analysis, frames);
     step('analyze', 'done');
 
@@ -873,36 +1142,30 @@ async function run() {
     detail('The AI is writing…');
     $('#results').hidden = false;
     $('#results').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    await write();
+    await write(signal);
     step('write', 'done');
-    detail('');
+    finish(current);
   } catch (e) {
-    step(current, null);
-    showError(e.message || String(e));
-    detail('');
-  } finally {
-    state.busy = false;
-    updateGo();
+    stopTicking();
+    finish(current, e);
   }
 }
 
 async function rewrite() {
   if (state.busy || !state.analysis) return;
-  state.busy = true;
-  updateGo();
-  hideError();
+  const signal = begin();
   try {
     step('write', 'active');
-    await write();
+    detail('The AI is writing…');
+    await write(signal);
     step('write', 'done');
+    finish('write');
   } catch (e) {
-    step('write', null);
-    showError(e.message || String(e));
-  } finally {
-    state.busy = false;
-    updateGo();
+    finish('write', e);
   }
 }
+
+$('#cancel').addEventListener('click', () => state.abort?.abort());
 
 function storyMarkdown() {
   return `# ${$('#story-title').textContent}\n\n${state.story.replace(/^\s*#\s+.+\n?/, '').trim()}\n`;
@@ -936,3 +1199,4 @@ $('#download').addEventListener('click', () => {
 state.key = store.get('or_key');
 await finishSignIn();
 renderAuth();
+loadPrices();

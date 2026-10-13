@@ -10,10 +10,16 @@ It is a static site for **GitHub Pages**. There is no server and nothing to pay 
 Video (camera, upload, or a YouTube link + timestamp; ≤ 60 s)
  ├─ Frames: 1 per second, captured in the browser with <canvas>
  ├─ Audio: transcribed in the browser by Whisper (Transformers.js, Web Worker)
- └─ Claude, through OpenRouter, signed in with OAuth (PKCE)
-      1. Analysis: text on screen, characters, timeline, who said what
-      2. Writing: the piece, streamed onto the page
+ └─ AI (Claude), through OpenRouter, signed in with OAuth (PKCE)
+      1. Watching (Sonnet 5.5 by default): text on screen, characters,
+         timeline, who said what, returned in a fixed JSON format
+      2. Writing (Opus 5.5 by default): the piece, streamed onto the page
 ```
+
+- **Two models:** a cheaper model watches the frames, which is most of the input; the best model writes. Both can be changed on the page.
+- **Reliability:** rate limits, server errors and dropped connections are retried automatically (up to 3 attempts). The analysis is requested with a strict JSON schema and asked for again once if it still comes back unreadable. A **Cancel** button stops any step.
+- **Cost:** the page shows an estimate before you start, using live prices from OpenRouter, and the actual cost reported by OpenRouter afterwards.
+- **Large files:** uploads over 150 MB aren't loaded into memory to read the sound. Their first minute is played silently and recorded instead, in real time.
 
 - **Sign-in:** "Sign in with OpenRouter" uses OAuth PKCE, so it needs no server and no secret. Each visitor's usage is billed to **their own** OpenRouter account. No key is ever stored in this repo.
 - **YouTube:** paste a link (a `?t=1m30s` timestamp fills in the start time) and choose a length, which defaults to 60 seconds. A static page can't download YouTube videos, so the clip plays in YouTube's own embedded player while the page records its own tab, cropped to the player. When the browser asks, share **this tab** with **"Also share tab audio"** ticked. Recording happens in real time, and only desktop Chrome and Edge can do it (Firefox records without sound). Videos whose owners block embedding can't be used. Only capture videos you have the right to use.
@@ -22,12 +28,15 @@ Video (camera, upload, or a YouTube link + timestamp; ≤ 60 s)
 
 ## Cost per video (paid by the visitor through OpenRouter)
 
-| Model | Approx. cost for a 1-minute video at 1 frame/s |
+Rough estimates for a 1-minute 16:9 video at 1 frame/s. The page shows its own estimate for each video, and the actual cost afterwards.
+
+| Watching → Writing | Approx. cost |
 |---|---|
-| Claude Opus 5.5 (default) | ~$0.25 |
-| Claude Sonnet 5.5 | ~$0.12 |
-| Claude Haiku 5.5 | ~$0.01 |
-| Claude Fable 5.1 | ~$0.60 |
+| Sonnet 5.5 → Opus 5.5 (default) | ~$0.17 |
+| Haiku 5.5 → Opus 5.5 | ~$0.08 |
+| Opus 5.5 → Opus 5.5 | ~$0.26 |
+| Sonnet 5.5 → Fable 5.1 | ~$0.27 |
+| Haiku 5.5 → Haiku 5.5 | under $0.01 |
 
 ## Deploy to GitHub Pages
 

@@ -147,6 +147,12 @@ select:focus, input:focus { outline: 2px solid var(--accent); outline-offset: 1p
 .analysis[open] .toggle::after { content: ' ▴'; }
 .analysis[open] summary { margin-bottom: 6px; }
 
+.needs h2 { font-family: var(--serif); font-size: 24px; font-weight: 600; margin: 0 0 8px; }
+.needs ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 14px; }
+.estimate { text-align: center; font-size: 13px; color: var(--text); margin: 8px 0 0; }
+.cost { font-size: 13px; color: var(--muted); margin: 10px 0 0; }
+.cancel { margin-top: 12px; }
+
 .privacy h2 { font-family: var(--serif); font-size: 26px; font-weight: 600; margin: 0 0 6px; }
 .privacy .lead { margin: 0 0 14px; }
 .privacy-list { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 10px; }

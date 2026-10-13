@@ -35,6 +35,15 @@
       <p>Record or upload a video up to 60 seconds long. The AI (Claude) watches it, reads any text on screen, describes the people, listens to what they say, and writes about the moment.</p>
     </section>
 
+    <section class="card needs" id="needs">
+      <h2>What you need</h2>
+      <ol>
+        <li><strong>An OpenRouter account.</strong> It's free to create and is how you pay for the AI. Use "Create account" at the top if you don't have one.</li>
+        <li><strong>A little credit on it.</strong> Each story costs from under $0.01 to about $0.30, depending on the video and the AI you choose (about $0.17 with the recommended settings), and you'll see an estimate before you start. Add credit at <a href="https://openrouter.ai/settings/credits" target="_blank" rel="noopener">openrouter.ai/settings/credits</a>. $5 covers many stories.</li>
+        <li><strong>A video up to one minute long.</strong> Record one, upload one, or use a YouTube link. YouTube links need desktop Chrome or Edge.</li>
+      </ol>
+    </section>
+
     <section class="card" id="capture">
       <div class="tabs" role="tablist">
         <button role="tab" class="tab active" data-tab="record" aria-selected="true">Record</button>
@@ -101,12 +110,20 @@
           </select>
         </label>
         <label class="field">
-          <span>AI model</span>
+          <span>AI that watches</span>
+          <select id="watch">
+            <option value="anthropic/claude-sonnet-5.5">Claude Sonnet 5.5 (recommended)</option>
+            <option value="anthropic/claude-haiku-5.5">Claude Haiku 5.5 (cheapest)</option>
+            <option value="anthropic/claude-opus-5.5">Claude Opus 5.5 (most detailed)</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>AI that writes</span>
           <select id="model">
-            <option value="anthropic/claude-opus-5.5">Claude Opus 5.5 (best)</option>
+            <option value="anthropic/claude-opus-5.5">Claude Opus 5.5 (recommended)</option>
+            <option value="anthropic/claude-fable-5.1">Claude Fable 5.1 (finest, costliest)</option>
             <option value="anthropic/claude-sonnet-5.5">Claude Sonnet 5.5 (faster)</option>
             <option value="anthropic/claude-haiku-5.5">Claude Haiku 5.5 (cheapest)</option>
-            <option value="anthropic/claude-fable-5.1">Claude Fable 5.1 (most capable)</option>
           </select>
         </label>
         <label class="field">
@@ -128,6 +145,7 @@
       </label>
       <button id="go" class="btn primary big" disabled>Write the story</button>
       <p id="hint" class="hint">Sign in and add a video to begin.</p>
+      <p id="estimate" class="estimate" hidden></p>
       <p class="privacy-note">🔒 Your video and sound stay on this device. Only still frames and a text transcript are sent to the AI. <a href="#privacy">Details</a></p>
     </section>
 
@@ -138,8 +156,10 @@
         <li data-step="analyze"><span class="ico"></span>Watching the scene</li>
         <li data-step="write"><span class="ico"></span>Writing</li>
       </ol>
-      <div id="progress-detail" class="detail"></div>
-      <div id="error" class="error" hidden></div>
+      <div id="progress-detail" class="detail" aria-live="polite"></div>
+      <div id="error" class="error" role="alert" hidden></div>
+      <p id="cost" class="cost" hidden></p>
+      <button id="cancel" class="btn small cancel" hidden>Cancel</button>
     </section>
 
     <section id="results" hidden>
