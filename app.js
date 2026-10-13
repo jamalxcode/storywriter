@@ -983,7 +983,17 @@ function inline(s) {
     .replace(/(^|\W)_(?!\s)(.+?)_(?=\W|$)/g, '$1<em>$2</em>');
 }
 
+// Arabic, Hebrew, Persian, Urdu and similar scripts are written right to left.
+const RTL_CHAR = /[֐-ࣿיִ-﷿ﹰ-﻿]/;
+const LETTER = /[A-Za-zÀ-ɏͰ-ԯ֐-ࣿיִ-﷿ﹰ-﻿]/;
+function isRTL(text) {
+  const first = text.match(LETTER);
+  return !!first && RTL_CHAR.test(first[0]);
+}
+
 function renderStory(text, streaming) {
+  const rtl = isRTL(text);
+  $('.story .sheet').dir = rtl ? 'rtl' : 'ltr';
   let t = text.replace(/^\s+/, '');
   const m = t.match(/^#\s+(.+)\n?/);
   if (m) {
@@ -991,6 +1001,7 @@ function renderStory(text, streaming) {
     t = t.slice(m[0].length);
   }
   const body = $('#story');
+  body.classList.toggle('rtl', rtl);
   if (body.classList.contains('screenplay')) {
     body.innerHTML = esc(t.trim()) + (streaming ? '<span class="cursor"></span>' : '');
     return;

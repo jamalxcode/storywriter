@@ -83,7 +83,7 @@ npx serve .
 |---|---|
 | `index.html` | Page layout: the four numbered steps (sign in, choose a video, writing style, write), the results and the privacy pop-up |
 | `style.css` | Base layout and styling, with light and dark modes |
-| `parchment.css` | The parchment theme, loaded after `style.css`: paper texture, old-book and calligraphy fonts, wax-seal buttons, step flourishes, and the story scroll with rolled ends, an unrolling animation and an illuminated first letter. Dark mode becomes "candlelit". Remove its `<link>` in `index.html` to go back to the plain look. |
+| `parchment.css` | The parchment theme, loaded after `style.css`: paper texture, old-book and calligraphy fonts, wax-seal buttons, step flourishes, and the story scroll with rolled ends, an unrolling animation and an illuminated first letter (right-to-left stories such as Arabic are right-aligned in Amiri and open with a gold quill ornament instead, since joined letters can't be split into a drop cap). Dark mode becomes "candlelit". Remove its `<link>` in `index.html` to go back to the plain look. |
 | `app.js` | Recording, YouTube capture, frame capture, OpenRouter sign-in, AI calls, cost estimate, rendering |
 | `whisper-worker.js` | Speech-to-text in a background thread |
 | `logo.svg` | The logo (a gold quill, inkpot and document), also used as the favicon |
